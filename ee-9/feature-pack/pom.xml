@@ -468,6 +468,10 @@
                     <groupId>org.wildfly.security</groupId>
                     <artifactId>wildfly-elytron-jaspi</artifactId>
                 </exclusion>
+                <exclusion>
+                    <groupId>org.wildfly.security</groupId>
+                    <artifactId>wildfly-elytron-jwt</artifactId>
+                </exclusion>
             </exclusions>
         </dependency>
 
@@ -476,6 +480,14 @@
             <artifactId>wildfly-core-feature-pack-galleon-common</artifactId>
             <type>pom</type>
             <scope>provided</scope>
+            <exclusions>
+                <!-- Exclude deps that have been replaced with different artifacts in this FP.
+                     TODO perhaps put these in a different maven module that we don't pull in -->
+                <exclusion>
+                    <groupId>org.eclipse.microprofile.jwt</groupId>
+                    <artifactId>microprofile-jwt-auth-api</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
 
         <dependency>
@@ -1017,8 +1029,20 @@
 
         <!-- Misc -->
         <dependency>
+            <groupId>org.eclipse.microprofile.jwt</groupId>
+            <artifactId>microprofile-jwt-auth-api</artifactId>
+            <scope>provided</scope>
+        </dependency>
+
+        <dependency>
             <groupId>org.jboss.spec.javax.xml.rpc</groupId>
             <artifactId>jboss-jaxrpc-api_1.1_spec</artifactId>
+            <scope>provided</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.wildfly.security</groupId>
+            <artifactId>wildfly-elytron-jwt</artifactId>
             <scope>provided</scope>
         </dependency>
 
