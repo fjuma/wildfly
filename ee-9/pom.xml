@@ -44,6 +44,7 @@
         <!-- Version properties for dependency management items -->
         <version.com.sun.faces>3.0.0.SP04</version.com.sun.faces>
         <version.com.sun.activation.jakarta.activation>2.0.0</version.com.sun.activation.jakarta.activation>
+        <version.io.smallrye.smallrye-jwt>3.3.0</version.io.smallrye.smallrye-jwt>
         <version.jakarta.annotation.jakarta-annotation-api>2.0.0</version.jakarta.annotation.jakarta-annotation-api>
         <version.jakarta.authentication.jakarta-authentication-api>2.0.0</version.jakarta.authentication.jakarta-authentication-api>
         <version.jakarta.authorization.jakarta-authorization-api>2.0.0</version.jakarta.authorization.jakarta-authorization-api>
@@ -178,6 +179,54 @@
                 <groupId>com.sun.mail</groupId>
                 <artifactId>jakarta.mail</artifactId>
                 <version>${version.jakarta.mail}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>*</groupId>
+                        <artifactId>*</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+
+            <dependency>
+                <groupId>io.smallrye</groupId>
+                <artifactId>smallrye-jwt</artifactId>
+                <version>${version.io.smallrye.smallrye-jwt}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>*</groupId>
+                        <artifactId>*</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+
+            <dependency>
+                <groupId>io.smallrye</groupId>
+                <artifactId>smallrye-jwt-cdi-extension</artifactId>
+                <version>${version.io.smallrye.smallrye-jwt}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>*</groupId>
+                        <artifactId>*</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+
+            <dependency>
+                <groupId>io.smallrye</groupId>
+                <artifactId>smallrye-jwt-common</artifactId>
+                <version>${version.io.smallrye.smallrye-jwt}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>*</groupId>
+                        <artifactId>*</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+
+            <dependency>
+                <groupId>io.smallrye</groupId>
+                <artifactId>smallrye-jwt-http-mechanism</artifactId>
+                <version>${version.io.smallrye.smallrye-jwt}</version>
                 <exclusions>
                     <exclusion>
                         <groupId>*</groupId>
