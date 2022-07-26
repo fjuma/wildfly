@@ -80,6 +80,7 @@
         <module>jsf</module>
         <module>legacy/jacorb</module>
         <module>legacy/jsr77</module>
+        <module>legacy/keycloak</module>
         <module>legacy/messaging</module>
         <module>legacy/web</module>
         <module>mail</module>
@@ -1316,6 +1317,12 @@
             <dependency>
                 <groupId>${ee.maven.groupId}</groupId>
                 <artifactId>wildfly-jsr77</artifactId>
+                <version>${ee.maven.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>${ee.maven.groupId}</groupId>
+                <artifactId>wildfly-keycloak</artifactId>
                 <version>${ee.maven.version}</version>
             </dependency>
 
