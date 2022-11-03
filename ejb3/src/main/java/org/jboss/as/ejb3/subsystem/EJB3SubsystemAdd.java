@@ -435,6 +435,9 @@ class EJB3SubsystemAdd extends AbstractBoottimeAddStepHandler {
                                 new ServerInterceptorsBindingsProcessor(serverInterceptorCache));
                     }
 
+                    processorTarget.addDeploymentProcessor(EJB3Extension.SUBSYSTEM_NAME, Phase.DEPENDENCIES, Phase.POST_MODULE_EJB_GLOBAL_CLIENT_INTERCEPTORS,
+                            new IdentityEJBClientInterceptorProcessor());
+
                     if (model.hasDefined(CLIENT_INTERCEPTORS)) {
                         final List<ServerInterceptorMetaData> clientInterceptors = new ArrayList<>();
 
