@@ -187,6 +187,9 @@ class EJB3SubsystemAdd extends AbstractBoottimeAddStepHandler {
     private static final String LEGACY_JACC_CAPABILITY = "org.wildfly.legacy-security.jacc";
     private static final String ELYTRON_JACC_CAPABILITY = "org.wildfly.security.jacc-policy";
 
+    private static final int POST_MODULE_EJB_GLOBAL_CLIENT_INTERCEPTORS  = 0x050B;
+    private static final int POST_MODULE_EJB_SERVER_INTERCEPTORS         = 0x050C;
+
     EJB3SubsystemAdd(final EJBDefaultSecurityDomainProcessor defaultSecurityDomainDeploymentProcessor, final MissingMethodPermissionsDenyAccessMergingProcessor missingMethodPermissionsDenyAccessMergingProcessor, AttributeDefinition... attributes) {
         super(attributes);
         this.defaultSecurityDomainDeploymentProcessor = defaultSecurityDomainDeploymentProcessor;
@@ -431,11 +434,11 @@ class EJB3SubsystemAdd extends AbstractBoottimeAddStepHandler {
                         processorTarget.addDeploymentProcessor(EJB3Extension.SUBSYSTEM_NAME, Phase.DEPENDENCIES, Phase.DEPENDENCIES_EJB_SERVER_INTERCEPTORS,
                                 new StaticInterceptorsDependenciesDeploymentUnitProcessor(serverInterceptors));
                         final ServerInterceptorCache serverInterceptorCache = new ServerInterceptorCache(serverInterceptors);
-                        processorTarget.addDeploymentProcessor(EJB3Extension.SUBSYSTEM_NAME, Phase.POST_MODULE, Phase.POST_MODULE_EJB_SERVER_INTERCEPTORS,
+                        processorTarget.addDeploymentProcessor(EJB3Extension.SUBSYSTEM_NAME, Phase.POST_MODULE, POST_MODULE_EJB_SERVER_INTERCEPTORS,
                                 new ServerInterceptorsBindingsProcessor(serverInterceptorCache));
                     }
 
-                    processorTarget.addDeploymentProcessor(EJB3Extension.SUBSYSTEM_NAME, Phase.DEPENDENCIES, Phase.POST_MODULE_EJB_GLOBAL_CLIENT_INTERCEPTORS,
+                    processorTarget.addDeploymentProcessor(EJB3Extension.SUBSYSTEM_NAME, Phase.DEPENDENCIES, POST_MODULE_EJB_GLOBAL_CLIENT_INTERCEPTORS,
                             new IdentityEJBClientInterceptorProcessor());
 
                     if (model.hasDefined(CLIENT_INTERCEPTORS)) {
@@ -450,7 +453,7 @@ class EJB3SubsystemAdd extends AbstractBoottimeAddStepHandler {
                                 new StaticInterceptorsDependenciesDeploymentUnitProcessor(clientInterceptors));
 
                         final ClientInterceptorCache clientInterceptorCache = new ClientInterceptorCache(clientInterceptors);
-                        processorTarget.addDeploymentProcessor(EJB3Extension.SUBSYSTEM_NAME, Phase.DEPENDENCIES, Phase.POST_MODULE_EJB_SERVER_INTERCEPTORS,
+                        processorTarget.addDeploymentProcessor(EJB3Extension.SUBSYSTEM_NAME, Phase.DEPENDENCIES, POST_MODULE_EJB_SERVER_INTERCEPTORS,
                                 new ClientInterceptorsBindingsProcessor(clientInterceptorCache));
                     }
                 }
