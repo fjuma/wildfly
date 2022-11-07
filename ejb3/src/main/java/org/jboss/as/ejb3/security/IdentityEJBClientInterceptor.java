@@ -39,6 +39,7 @@ public final class IdentityEJBClientInterceptor implements EJBClientInterceptor 
 
     @Override
     public void handleInvocation(EJBClientInvocationContext context) throws Exception {
+        System.out.println("**** IN HANDLE INVOCATION ");
         SecurityDomain securityDomain = SecurityDomain.getCurrent();
         if (securityDomain != null) {
             SecurityIdentity identity = securityDomain.getCurrentSecurityIdentity();

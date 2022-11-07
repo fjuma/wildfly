@@ -203,6 +203,7 @@ public class ElytronDomainSetup implements ServerSetupTask {
         addDomain.get("realms").get(0).get("realm").set(getSecurityRealmName());
         addDomain.get("realms").get(0).get("role-decoder").set("groups-to-roles"); // use attribute "groups" as roles (defined in standalone-elytron.xml)
         addDomain.get("realms").get(1).get("realm").set("local");
+
         steps.add(addDomain);
 
         applyUpdate(managementClient.getControllerClient(), compositeOp, false);
