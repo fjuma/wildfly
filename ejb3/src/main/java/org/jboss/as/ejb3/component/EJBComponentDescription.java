@@ -88,6 +88,7 @@ import org.jboss.as.ejb3.security.PolicyContextIdInterceptor;
 import org.jboss.as.ejb3.security.RoleAddingInterceptor;
 import org.jboss.as.ejb3.security.RunAsPrincipalInterceptor;
 import org.jboss.as.ejb3.security.SecurityDomainInterceptorFactory;
+import org.jboss.as.ejb3.security.SecurityIdentityInterceptor;
 import org.jboss.as.ejb3.security.SecurityRolesAddingInterceptor;
 import org.jboss.as.ejb3.subsystem.EJB3RemoteResourceDefinition;
 import org.jboss.as.ejb3.suspend.EJBSuspendHandlerService;
@@ -529,6 +530,7 @@ public abstract class EJBComponentDescription extends ComponentDescription {
 
     protected void setupClientViewInterceptors(ViewDescription view) {
         // add a client side interceptor which handles the toString() method invocation on the bean's views
+        this.addSecurityIdentityMethodInterceptor(view);
         this.addToStringMethodInterceptor(view);
     }
 
@@ -629,6 +631,15 @@ public abstract class EJBComponentDescription extends ComponentDescription {
     protected void setupSecurityInterceptors(final ViewDescription view) {
         // setup security interceptor for the component
         view.getConfigurators().add(new EJBSecurityViewConfigurator());
+    }
+
+    private void addSecurityIdentityMethodInterceptor(final ViewDescription view) {
+        view.getConfigurators().add(new ViewConfigurator() {
+            @Override
+            public void configure(DeploymentPhaseContext context, ComponentConfiguration componentConfiguration, ViewDescription description, ViewConfiguration configuration) throws DeploymentUnitProcessingException {
+                configuration.addClientInterceptor(new ImmediateInterceptorFactory(new SecurityIdentityInterceptor()), InterceptorOrder.Client.SECURITY_IDENTITY);
+            }
+        });
     }
 
     private void addToStringMethodInterceptor(final ViewDescription view) {
