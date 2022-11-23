@@ -21,6 +21,10 @@
  */
 package org.wildfly.test.integration.elytron.ejb.propagation.local;
 
+import static org.jboss.as.test.shared.integration.ejb.security.Util.switchIdentity;
+
+import java.util.concurrent.Callable;
+
 import jakarta.annotation.Resource;
 import jakarta.annotation.security.PermitAll;
 import jakarta.ejb.SessionContext;
@@ -55,6 +59,20 @@ public class ManagementBeanLocal {
         return entry.doIHaveRole(role);
     }
 
+    @PermitAll
+    public String[] switchThenInvokeEntryDoIHaveRole(String username, String password, String role) {
+        EntryLocal entry = lookup(EntryLocal.class, "java:global/ear-ejb-deployment-local/ear-ejb-deployment-local-ejb/EntryBeanLocal!org.wildfly.test.integration.elytron.ejb.propagation.local.EntryLocal");
+        final Callable<String[]> callable = () -> {
+            String localWho = entry.whoAmI();
+            boolean hasRole = entry.doIHaveRole(role);
+            return new String[] { localWho, String.valueOf(hasRole) };
+        };
+        try {
+            return switchIdentity(username, password, callable);
+        } catch (Exception e) {
+            throw new IllegalStateException(e);
+        }
+    }
 
     public static <T> T lookup(Class<T> clazz, String jndiName) {
         Object bean = lookup(jndiName);

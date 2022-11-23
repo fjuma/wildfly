@@ -69,6 +69,13 @@ public class ComplexServletLocal extends HttpServlet {
             } catch (Exception e) {
                 throw new ServletException("Unexpected Failure", e);
             }
+        } else if ("switchThenInvokeEntryDoIHaveRole".equals(method)) {
+            try {
+                String[] result = bean.switchThenInvokeEntryDoIHaveRole(username, password, role);
+                writer.write(result[0] + "," + result[1]);
+            } catch (Exception e) {
+                throw new ServletException("Unexpected Failure", e);
+            }
         } else {
             throw new IllegalArgumentException("Parameter 'method' either missing or invalid method='" + method + "'");
         }

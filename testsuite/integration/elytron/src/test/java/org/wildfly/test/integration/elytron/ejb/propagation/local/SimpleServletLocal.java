@@ -21,8 +21,11 @@
  */
 package org.wildfly.test.integration.elytron.ejb.propagation.local;
 
+import static org.jboss.as.test.shared.integration.ejb.security.Util.switchIdentity;
+
 import java.io.IOException;
 import java.io.Writer;
+import java.util.concurrent.Callable;
 
 import jakarta.annotation.security.DeclareRoles;
 import jakarta.ejb.EJB;
@@ -59,6 +62,18 @@ public class SimpleServletLocal extends HttpServlet {
         if ("whoAmI".equals(method)) {
             try {
                 writer.write(bean.whoAmI());
+            } catch (Exception e) {
+                throw new ServletException("Unexpected Failure", e);
+            }
+        } else if ("switchWhoAmI".equals(method)) {
+            final Callable<String[]> callable = () -> {
+                String localWho = bean.whoAmI();
+                boolean hasRole = bean.doIHaveRole(role);
+                return new String[]{localWho, String.valueOf(hasRole)};
+            };
+            try {
+                String[] result = switchIdentity(username, password, callable);
+                writer.write(result[0] + "," + result[1]);
             } catch (Exception e) {
                 throw new ServletException("Unexpected Failure", e);
             }

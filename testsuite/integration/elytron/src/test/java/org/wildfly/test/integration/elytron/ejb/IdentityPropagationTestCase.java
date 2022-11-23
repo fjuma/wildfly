@@ -50,7 +50,6 @@ import org.jboss.as.controller.client.ModelControllerClient;
 import org.jboss.as.test.integration.management.base.AbstractMgmtTestBase;
 import org.jboss.as.test.integration.management.util.ModelUtil;
 import org.jboss.as.test.shared.ServerReload;
-import org.jboss.as.test.shared.TestSuiteEnvironment;
 import org.jboss.as.test.shared.integration.ejb.security.Util;
 import org.jboss.dmr.ModelNode;
 import org.jboss.shrinkwrap.api.Archive;
@@ -67,6 +66,7 @@ import org.wildfly.test.integration.elytron.ejb.propagation.local.ComplexServlet
 import org.wildfly.test.integration.elytron.ejb.propagation.local.EntryBeanLocal;
 import org.wildfly.test.integration.elytron.ejb.propagation.local.EntryLocal;
 import org.wildfly.test.integration.elytron.ejb.propagation.local.ManagementBeanLocal;
+import org.wildfly.test.integration.elytron.ejb.propagation.local.ServletOnlyLocal;
 import org.wildfly.test.integration.elytron.ejb.propagation.local.SimpleServletLocal;
 import org.wildfly.test.integration.elytron.ejb.propagation.local.WhoAmIBeanLocal;
 import org.wildfly.test.integration.elytron.ejb.propagation.local.WhoAmILocal;
@@ -102,14 +102,14 @@ public class IdentityPropagationTestCase {
     private static final String SINGLE_DEPLOYMENT_REMOTE = "single-deployment-remote";
     private static final String EAR_DEPLOYMENT_WITH_EJB_REMOTE = "ear-ejb-deployment-remote";
     private static final String EAR_DEPLOYMENT_WITH_SERVLET_AND_EJB_REMOTE = "ear-servlet-ejb-deployment-remote";
-    private static final String EAR_DEPLOYMENT_WITH_SERVLET = "ear-servlet";
+    private static final String EAR_DEPLOYMENT_WITH_SERVLET_REMOTE = "ear-servlet-remote";
+    private static final String EAR_DEPLOYMENT_WITH_SERVLET_LOCAL = "ear-servlet-local";
 
     @ArquillianResource
     private URL url;
 
     @Deployment(name= EAR_DEPLOYMENT_WITH_EJB_LOCAL, order = 1)
     public static Archive<?> ejbDeploymentLocal() {
-        final String SERVER_HOST_PORT = TestSuiteEnvironment.getHttpAddress() + ":" + TestSuiteEnvironment.getHttpPort();
         final Package currentPackage = IdentityPropagationTestCase.class.getPackage();
         final JavaArchive jar = ShrinkWrap.create(JavaArchive.class, EAR_DEPLOYMENT_WITH_EJB_LOCAL + "-ejb.jar")
                 .addClass(WhoAmIBeanLocal.class).addClass(EntryBeanLocal.class)
@@ -124,7 +124,6 @@ public class IdentityPropagationTestCase {
 
     @Deployment(name= EAR_DEPLOYMENT_WITH_EJB_REMOTE, order = 2)
     public static Archive<?> ejbDeploymentRemote() {
-        final String SERVER_HOST_PORT = TestSuiteEnvironment.getHttpAddress() + ":" + TestSuiteEnvironment.getHttpPort();
         final Package currentPackage = IdentityPropagationTestCase.class.getPackage();
         final JavaArchive jar = ShrinkWrap.create(JavaArchive.class, EAR_DEPLOYMENT_WITH_EJB_REMOTE + "-ejb.jar")
                 .addClass(WhoAmIBeanRemote.class).addClass(EntryBeanRemote.class)
@@ -139,11 +138,11 @@ public class IdentityPropagationTestCase {
 
     @Deployment(name= SINGLE_DEPLOYMENT_LOCAL, order = 3)
     public static Archive<?> singleDeploymentLocal() {
-        final String SERVER_HOST_PORT = TestSuiteEnvironment.getHttpAddress() + ":" + TestSuiteEnvironment.getHttpPort();
         final Package currentPackage = IdentityPropagationTestCase.class.getPackage();
         final WebArchive war = ShrinkWrap.create(WebArchive.class, SINGLE_DEPLOYMENT_LOCAL + "-web.war")
                 .addClass(HttpUtil.class)
                 .addClasses(SimpleServletLocal.class, IdentityPropagationTestCase.class)
+                .addClass(Util.class)
                 .addClasses(ServletDomainSetupOverride.class, EJBDomainSetupOverride.class, PropagationSetup.class,
                         PropagationSetup.class, ServletElytronDomainSetup.class,
                         ElytronDomainSetup.class, AbstractMgmtTestBase.class, EjbElytronDomainSetup.class)
@@ -163,7 +162,6 @@ public class IdentityPropagationTestCase {
 
     @Deployment(name= EAR_DEPLOYMENT_WITH_SERVLET_AND_EJB_LOCAL, order = 4)
     public static Archive<?> servletAndEJBDeploymentLocal() {
-        final String SERVER_HOST_PORT = TestSuiteEnvironment.getHttpAddress() + ":" + TestSuiteEnvironment.getHttpPort();
         final Package currentPackage = IdentityPropagationTestCase.class.getPackage();
         final WebArchive war = ShrinkWrap.create(WebArchive.class, EAR_DEPLOYMENT_WITH_SERVLET_AND_EJB_LOCAL + "-web.war")
                 .addClass(HttpUtil.class)
@@ -175,6 +173,7 @@ public class IdentityPropagationTestCase {
                 .addAsWebInfResource(currentPackage, "jboss-web.xml", "jboss-web.xml");
         final JavaArchive jar = ShrinkWrap.create(JavaArchive.class, EAR_DEPLOYMENT_WITH_SERVLET_AND_EJB_LOCAL + "-ejb.jar")
                 .addClass(ManagementBeanLocal.class)
+                .addClass(Util.class)
                 .addAsManifestResource(EmptyAsset.INSTANCE, "beans.xml")
                 .addAsManifestResource(currentPackage, "jboss-ejb3.xml", "jboss-ejb3.xml")
                 .addAsManifestResource(new StringAsset("Dependencies: deployment." + EAR_DEPLOYMENT_WITH_EJB_LOCAL + ".ear" + "." + EAR_DEPLOYMENT_WITH_EJB_LOCAL + "-ejb.jar"), "MANIFEST.MF");
@@ -184,11 +183,10 @@ public class IdentityPropagationTestCase {
         return ear;
     }
 
-    @Deployment(name= EAR_DEPLOYMENT_WITH_SERVLET, order = 5)
-    public static Archive<?> servletOnly() {
-        final String SERVER_HOST_PORT = TestSuiteEnvironment.getHttpAddress() + ":" + TestSuiteEnvironment.getHttpPort();
+    @Deployment(name= EAR_DEPLOYMENT_WITH_SERVLET_REMOTE, order = 5)
+    public static Archive<?> servletOnlyRemote() {
         final Package currentPackage = IdentityPropagationTestCase.class.getPackage();
-        final WebArchive war = ShrinkWrap.create(WebArchive.class, EAR_DEPLOYMENT_WITH_SERVLET + "-web.war")
+        final WebArchive war = ShrinkWrap.create(WebArchive.class, EAR_DEPLOYMENT_WITH_SERVLET_REMOTE + "-web.war")
                 .addClass(HttpUtil.class)
                 .addClasses(ServletOnlyRemote.class, IdentityPropagationTestCase.class)
                 .addClasses(ServletDomainSetupOverride.class, EJBDomainSetupOverride.class, PropagationSetup.class,
@@ -196,19 +194,39 @@ public class IdentityPropagationTestCase {
                         ElytronDomainSetup.class, AbstractMgmtTestBase.class, EjbElytronDomainSetup.class)
                 .addAsWebInfResource(currentPackage, "web.xml", "web.xml")
                 .addAsWebInfResource(currentPackage, "jboss-web.xml", "jboss-web.xml");
-        final JavaArchive jar = ShrinkWrap.create(JavaArchive.class, EAR_DEPLOYMENT_WITH_SERVLET + "-ejb.jar")
+        final JavaArchive jar = ShrinkWrap.create(JavaArchive.class, EAR_DEPLOYMENT_WITH_SERVLET_REMOTE + "-ejb.jar")
                 .addAsManifestResource(EmptyAsset.INSTANCE, "beans.xml")
                 .addAsManifestResource(currentPackage, "jboss-ejb3.xml", "jboss-ejb3.xml")
                 .addAsManifestResource(new StringAsset("Dependencies: deployment." + EAR_DEPLOYMENT_WITH_EJB_REMOTE + ".ear" + "." + EAR_DEPLOYMENT_WITH_EJB_REMOTE + "-ejb.jar"), "MANIFEST.MF");
-        final EnterpriseArchive ear = ShrinkWrap.create(EnterpriseArchive.class, EAR_DEPLOYMENT_WITH_SERVLET + ".ear");
+        final EnterpriseArchive ear = ShrinkWrap.create(EnterpriseArchive.class, EAR_DEPLOYMENT_WITH_SERVLET_REMOTE + ".ear");
         ear.addAsModule(war);
         ear.addAsModule(jar);
         return ear;
     }
 
-    @Deployment(name= SINGLE_DEPLOYMENT_REMOTE, order = 6)
+    @Deployment(name= EAR_DEPLOYMENT_WITH_SERVLET_LOCAL, order = 6)
+    public static Archive<?> servletOnlyLocal() {
+        final Package currentPackage = IdentityPropagationTestCase.class.getPackage();
+        final WebArchive war = ShrinkWrap.create(WebArchive.class, EAR_DEPLOYMENT_WITH_SERVLET_LOCAL + "-web.war")
+                .addClass(HttpUtil.class)
+                .addClasses(ServletOnlyLocal.class, IdentityPropagationTestCase.class)
+                .addClasses(ServletDomainSetupOverride.class, EJBDomainSetupOverride.class, PropagationSetup.class,
+                        PropagationSetup.class, ServletElytronDomainSetup.class,
+                        ElytronDomainSetup.class, AbstractMgmtTestBase.class, EjbElytronDomainSetup.class)
+                .addAsWebInfResource(currentPackage, "web.xml", "web.xml")
+                .addAsWebInfResource(currentPackage, "jboss-web.xml", "jboss-web.xml");
+        final JavaArchive jar = ShrinkWrap.create(JavaArchive.class, EAR_DEPLOYMENT_WITH_SERVLET_LOCAL + "-ejb.jar")
+                .addAsManifestResource(EmptyAsset.INSTANCE, "beans.xml")
+                .addAsManifestResource(currentPackage, "jboss-ejb3.xml", "jboss-ejb3.xml")
+                .addAsManifestResource(new StringAsset("Dependencies: deployment." + EAR_DEPLOYMENT_WITH_EJB_LOCAL + ".ear" + "." + EAR_DEPLOYMENT_WITH_EJB_LOCAL + "-ejb.jar"), "MANIFEST.MF");
+        final EnterpriseArchive ear = ShrinkWrap.create(EnterpriseArchive.class, EAR_DEPLOYMENT_WITH_SERVLET_LOCAL + ".ear");
+        ear.addAsModule(war);
+        ear.addAsModule(jar);
+        return ear;
+    }
+
+    @Deployment(name= SINGLE_DEPLOYMENT_REMOTE, order = 7)
     public static Archive<?> singleDeploymentRemote() {
-        final String SERVER_HOST_PORT = TestSuiteEnvironment.getHttpAddress() + ":" + TestSuiteEnvironment.getHttpPort();
         final Package currentPackage = IdentityPropagationTestCase.class.getPackage();
         final WebArchive war = ShrinkWrap.create(WebArchive.class, SINGLE_DEPLOYMENT_REMOTE + "-web.war")
                 .addClass(HttpUtil.class)
@@ -231,9 +249,8 @@ public class IdentityPropagationTestCase {
         return ear;
     }
 
-    @Deployment(name= EAR_DEPLOYMENT_WITH_SERVLET_AND_EJB_REMOTE, order = 7)
+    @Deployment(name= EAR_DEPLOYMENT_WITH_SERVLET_AND_EJB_REMOTE, order = 8)
     public static Archive<?> servletAndEJBDeploymentRemote() {
-        final String SERVER_HOST_PORT = TestSuiteEnvironment.getHttpAddress() + ":" + TestSuiteEnvironment.getHttpPort();
         final Package currentPackage = IdentityPropagationTestCase.class.getPackage();
         final WebArchive war = ShrinkWrap.create(WebArchive.class, EAR_DEPLOYMENT_WITH_SERVLET_AND_EJB_REMOTE + "-web.war")
                 .addClass(HttpUtil.class)
@@ -259,12 +276,26 @@ public class IdentityPropagationTestCase {
      * Servlet -> EJB propagation scenarios involving different security domains within a single deployment.
      */
 
+    /**
+     * The EAR used in this test case contains:
+     * - a servlet within a WAR
+     * - a local EJB within a JAR
+     *
+     * The servlet attempts to invoke the local EJB.
+     */
     @Test
     @OperateOnDeployment(SINGLE_DEPLOYMENT_LOCAL)
     public void testServletToEjbSingleDeploymentLocal() throws Exception {
         testServletToEjbInvocation();
     }
 
+    /**
+     * The EAR used in this test case contains:
+     * - a servlet within a WAR
+     * - a remote EJB within a JAR
+     *
+     * The servlet attempts to invoke the remote EJB.
+     */
     @Test
     @OperateOnDeployment(SINGLE_DEPLOYMENT_REMOTE)
     public void testServletToEjbSingleDeploymentRemote() throws Exception {
@@ -278,15 +309,45 @@ public class IdentityPropagationTestCase {
         assertEquals("true", result);
     }
 
+    /**
+     * The EAR used in this test case contains:
+     * - a servlet within a WAR
+     * - an EJB within a JAR
+     *
+     * The wrong password is used to access the servlet.
+     */
     @Test
     @OperateOnDeployment(SINGLE_DEPLOYMENT_REMOTE)
     public void testWrongPasswordSingleDeployment() throws Exception {
         testWrongPassword();
     }
 
+    /**
+     * The EAR used in this test case contains:
+     * - a servlet within a WAR
+     * - a remote EJB within a JAR
+     *
+     * The servlet uses programmatic authentication to switch the identity and invokes the remote EJB
+     * under this new identity.
+     */
     @Test
     @OperateOnDeployment(SINGLE_DEPLOYMENT_REMOTE)
-    public void testServletToEjbSingleDeploymentProgrammaticAuth() throws Exception {
+    public void testServletToEjbSingleDeploymentProgrammaticAuthRemote() throws Exception {
+        String result = getWhoAmI("?method=switchWhoAmI&username=user2&password=password2&role=Managers2");
+        assertEquals("user2,true", result);
+    }
+
+    /**
+     * The EAR used in this test case contains:
+     * - a servlet within a WAR
+     * - a local EJB within a JAR
+     *
+     * The servlet uses programmatic authentication to switch the identity and invokes the local EJB
+     * under this new identity.
+     */
+    @Test
+    @OperateOnDeployment(SINGLE_DEPLOYMENT_LOCAL)
+    public void testServletToEjbSingleDeploymentProgrammaticAuthLocal() throws Exception {
         String result = getWhoAmI("?method=switchWhoAmI&username=user2&password=password2&role=Managers2");
         assertEquals("user2,true", result);
     }
@@ -303,12 +364,34 @@ public class IdentityPropagationTestCase {
      * Servlet -> EJB -> EJB propagation scenarios involving different security domains across deployments.
      */
 
+    /**
+     * Two EARs are used in this test case.
+     * EAR #1 contains:
+     * - a servlet within a WAR
+     * - an EJB within a JAR
+     *
+     * EAR #2 contains:
+     * - a local EJB within a JAR
+     *
+     * The servlet invokes the EJB from EAR #1 and that EJB attempts to invoke the local EJB in EAR #2.
+     */
     @Test
     @OperateOnDeployment(EAR_DEPLOYMENT_WITH_SERVLET_AND_EJB_LOCAL)
     public void testEarToEarLocal() throws Exception {
         testServletToEjbToEjbInvocation();
     }
 
+    /**
+     * Two EARs are used in this test case.
+     * EAR #1 contains:
+     * - a servlet within a WAR
+     * - an EJB within a JAR
+     *
+     * EAR #2 contains:
+     * - a remote EJB within a JAR
+     *
+     * The servlet invokes the EJB from EAR #1 and that EJB attempts to invoke the remote EJB in EAR #2.
+     */
     @Test
     @OperateOnDeployment(EAR_DEPLOYMENT_WITH_SERVLET_AND_EJB_REMOTE)
     public void testEarToEarRemote() throws Exception {
@@ -322,21 +405,81 @@ public class IdentityPropagationTestCase {
         assertEquals("true", result);
     }
 
+    /**
+     * Two EARs are used in this test case. The servlet from EAR #1 is accessed using the wrong password.
+     */
     @Test
     @OperateOnDeployment(EAR_DEPLOYMENT_WITH_SERVLET_AND_EJB_REMOTE)
     public void testWrongPasswordEarToEar() throws Exception {
         testWrongPassword();
     }
 
+    /**
+     * Two EARs are used in this test case.
+     * EAR #1 contains:
+     * - a servlet within a WAR
+     *
+     * EAR #2 contains:
+     * - a remote EJB within a JAR
+     *
+     * The servlet invokes the remote EJB from EAR #2.
+     */
     @Test
-    @OperateOnDeployment(EAR_DEPLOYMENT_WITH_SERVLET)
-    public void testServletToEjbEarToEar() throws Exception {
+    @OperateOnDeployment(EAR_DEPLOYMENT_WITH_SERVLET_REMOTE)
+    public void testServletToEjbEarToEarRemote() throws Exception {
         testServletToEjbInvocation();
     }
 
+    /**
+     * Two EARs are used in this test case.
+     * EAR #1 contains:
+     * - a servlet within a WAR
+     *
+     * EAR #2 contains:
+     * - a local EJB within a JAR
+     *
+     * The servlet invokes the local EJB from EAR #2.
+     */
+    @Test
+    @OperateOnDeployment(EAR_DEPLOYMENT_WITH_SERVLET_REMOTE)
+    public void testServletToEjbEarToEarLocal() throws Exception {
+        testServletToEjbInvocation();
+    }
+
+    /**
+     * Two EARs are used in this test case.
+     * EAR #1 contains:
+     * - a servlet within a WAR
+     * - an EJB within a JAR
+     *
+     * EAR #2 contains:
+     * - a remote EJB within a JAR
+     *
+     * The servlet invokes the EJB from EAR #1. That EJB then uses programmatic authentication to switch
+     * the identity and then invokes the remote EJB from EAR #2 under this new identity.
+     */
     @Test
     @OperateOnDeployment(EAR_DEPLOYMENT_WITH_SERVLET_AND_EJB_REMOTE)
-    public void testEarToEarProgrammaticAuth() throws Exception {
+    public void testEarToEarProgrammaticAuthRemote() throws Exception {
+        String result = getWhoAmI("?method=switchThenInvokeEntryDoIHaveRole&username=user2&password=password2&role=Managers2");
+        assertEquals("user2,true", result);
+    }
+
+    /**
+     * Two EARs are used in this test case.
+     * EAR #1 contains:
+     * - a servlet within a WAR
+     * - an EJB within a JAR
+     *
+     * EAR #2 contains:
+     * - a local EJB within a JAR
+     *
+     * The servlet invokes the EJB from EAR #1. That EJB then uses programmatic authentication to switch
+     * the identity and then invokes the local EJB from EAR #2 under this new identity.
+     */
+    @Test
+    @OperateOnDeployment(EAR_DEPLOYMENT_WITH_SERVLET_AND_EJB_LOCAL)
+    public void testEarToEarProgrammaticAuthLocal() throws Exception {
         String result = getWhoAmI("?method=switchThenInvokeEntryDoIHaveRole&username=user2&password=password2&role=Managers2");
         assertEquals("user2,true", result);
     }
