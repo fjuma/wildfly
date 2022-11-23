@@ -438,8 +438,8 @@ class EJB3SubsystemAdd extends AbstractBoottimeAddStepHandler {
                                 new ServerInterceptorsBindingsProcessor(serverInterceptorCache));
                     }
 
-                    processorTarget.addDeploymentProcessor(EJB3Extension.SUBSYSTEM_NAME, Phase.DEPENDENCIES, POST_MODULE_EJB_GLOBAL_CLIENT_INTERCEPTORS,
-                            new IdentityEJBClientInterceptorProcessor());
+                    processorTarget.addDeploymentProcessor(EJB3Extension.SUBSYSTEM_NAME, Phase.POST_MODULE, POST_MODULE_EJB_GLOBAL_CLIENT_INTERCEPTORS,
+                            new IdentityEJBInterceptorProcessor());
 
                     if (model.hasDefined(CLIENT_INTERCEPTORS)) {
                         final List<ServerInterceptorMetaData> clientInterceptors = new ArrayList<>();
@@ -453,7 +453,7 @@ class EJB3SubsystemAdd extends AbstractBoottimeAddStepHandler {
                                 new StaticInterceptorsDependenciesDeploymentUnitProcessor(clientInterceptors));
 
                         final ClientInterceptorCache clientInterceptorCache = new ClientInterceptorCache(clientInterceptors);
-                        processorTarget.addDeploymentProcessor(EJB3Extension.SUBSYSTEM_NAME, Phase.DEPENDENCIES, POST_MODULE_EJB_SERVER_INTERCEPTORS,
+                        processorTarget.addDeploymentProcessor(EJB3Extension.SUBSYSTEM_NAME, Phase.POST_MODULE, POST_MODULE_EJB_SERVER_INTERCEPTORS,
                                 new ClientInterceptorsBindingsProcessor(clientInterceptorCache));
                     }
                 }
