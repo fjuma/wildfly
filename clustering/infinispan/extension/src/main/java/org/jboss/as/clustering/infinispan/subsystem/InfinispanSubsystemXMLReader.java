@@ -304,7 +304,8 @@ public class InfinispanSubsystemXMLReader implements XMLElementReader<List<Model
             // We need to create a corresponding channel add operation
             String channel = "ee-" + containerAddress.getLastElement().getValue();
             setAttribute(reader, channel, operation, JGroupsTransportResourceDefinition.Attribute.CHANNEL);
-            PathAddress channelAddress = PathAddress.pathAddress(PathElement.pathElement(ModelDescriptionConstants.SUBSYSTEM, "jgroups"), PathElement.pathElement("channel", channel));
+            PathAddress subsystemAddress = PathAddress.pathAddress(PathElement.pathElement(ModelDescriptionConstants.SUBSYSTEM, "jgroups"));
+            PathAddress channelAddress = subsystemAddress.append(PathElement.pathElement("channel", channel));
             ModelNode channelOperation = Util.createAddOperation(channelAddress);
             if (stack != null) {
                 channelOperation.get("stack").set(stack);

@@ -19,21 +19,19 @@
 
 package org.wildfly.test.integration.observability.opentelemetry;
 
-import java.net.URI;
-import java.util.List;
-
 import io.opentelemetry.sdk.trace.data.SpanData;
 import jakarta.ws.rs.client.Client;
 import jakarta.ws.rs.client.ClientBuilder;
 import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.arquillian.junit.Arquillian;
 import org.jboss.as.arquillian.api.ServerSetup;
-import org.jboss.as.test.shared.util.AssumeTestGroupUtil;
 import org.jboss.shrinkwrap.api.Archive;
 import org.junit.Assert;
-import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+
+import java.net.URI;
+import java.util.List;
 
 /**
  * This test exercises the context propagation functionality. Two services are deployed, with the first calling the
@@ -44,11 +42,6 @@ import org.junit.runner.RunWith;
 @RunWith(Arquillian.class)
 @ServerSetup(OpenTelemetrySetupTask.class)
 public class ContextPropagationTestCase extends BaseOpenTelemetryTest {
-    // TODO: Addressed by https://issues.redhat.com/browse/WFLY-17774
-    @BeforeClass
-    public static void securityManagerNotSupported() {
-        AssumeTestGroupUtil.assumeSecurityManagerDisabled();
-    }
 
     @Deployment
     public static Archive getDeployment() {
@@ -65,6 +58,13 @@ public class ContextPropagationTestCase extends BaseOpenTelemetryTest {
                     .get();
         }
 
+        // 6 Expected spans named:
+        // Recording traceparent
+        // /ContextPropagationTestCase/contextProp2
+        // HTTP GET
+        // Making second request
+        // /ContextPropagationTestCase/contextProp1
+        // HTTP GET
         List<SpanData> finishedSpans = spanExporter.getFinishedSpanItems(6);
 
         SpanData lastSpan = finishedSpans.get(finishedSpans.size()-1);
