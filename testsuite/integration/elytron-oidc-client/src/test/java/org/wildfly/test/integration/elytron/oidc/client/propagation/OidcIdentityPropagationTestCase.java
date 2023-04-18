@@ -33,7 +33,6 @@ import static org.jboss.as.test.integration.management.util.ModelUtil.createOpNo
 import static org.jboss.as.test.shared.integration.ejb.security.PermissionUtils.createPermissionsXmlAsset;
 import static org.junit.Assume.assumeTrue;
 import static org.wildfly.test.integration.elytron.oidc.client.KeycloakConfiguration.getRealmRepresentation;
-import static org.wildfly.test.integration.elytron.oidc.client.OidcBaseTest.KEYCLOAK_CONTAINER;
 import static org.wildfly.test.integration.elytron.oidc.client.OidcBaseTest.loginToApp;
 
 import java.io.File;
@@ -78,6 +77,7 @@ import org.testcontainers.DockerClientFactory;
 import org.wildfly.extension.elytron.oidc.ElytronOidcExtension;
 import org.wildfly.security.permission.ElytronPermission;
 import org.wildfly.test.integration.elytron.oidc.client.KeycloakConfiguration;
+import org.wildfly.test.integration.elytron.oidc.client.KeycloakContainer;
 import org.wildfly.test.integration.elytron.oidc.client.OidcBaseTest;
 import org.wildfly.test.integration.elytron.oidc.client.propagation.base.WhoAmIBean;
 import org.wildfly.test.integration.elytron.oidc.client.propagation.local.AnotherEntryBeanLocal;
@@ -135,6 +135,7 @@ public class OidcIdentityPropagationTestCase {
     private static final String SECURE_DEPLOYMENT_ADDRESS = "subsystem=" + ElytronOidcExtension.SUBSYSTEM_NAME + "/secure-deployment=";
     private static final String PROVIDER_ADDRESS = "subsystem=" + ElytronOidcExtension.SUBSYSTEM_NAME + "/provider=";
     private static final String KEYCLOAK_PROVIDER = "keycloak";
+    private static KeycloakContainer KEYCLOAK_CONTAINER;
 
     private static Map<String, KeycloakConfiguration.ClientAppType> CLIENT_IDS;
     static {
@@ -439,6 +440,10 @@ public class OidcIdentityPropagationTestCase {
         }
     }
 
+    public KeycloakContainer getKeycloakContainer() {
+        return KEYCLOAK_CONTAINER;
+    }
+
     /**
      * Servlet -> EJB propagation scenarios involving different security domains within a single deployment.
      */
@@ -740,12 +745,16 @@ public class OidcIdentityPropagationTestCase {
         }
     }
 
-    static class KeycloakAndSubsystemSetup extends OidcBaseTest.KeycloakSetup {
+    static class KeycloakAndSubsystemSetup implements ServerSetupTask {
+
+        private OidcBaseTest.KeycloakSetup keycloakSetup;
 
         @Override
         public void setup(ManagementClient managementClient, String containerId) throws Exception {
-            super.setup(managementClient, containerId);
-            OidcBaseTest.sendRealmCreationRequest(getRealmRepresentation(TEST_REALM, CLIENT_SECRET, CLIENT_HOST_NAME, CLIENT_PORT, CLIENT_IDS));
+            KEYCLOAK_CONTAINER = new KeycloakContainer();
+            keycloakSetup = new OidcBaseTest.KeycloakSetup(KEYCLOAK_CONTAINER);
+            keycloakSetup.setup(managementClient, containerId);
+            OidcBaseTest.sendRealmCreationRequest(getRealmRepresentation(TEST_REALM, CLIENT_SECRET, CLIENT_HOST_NAME, CLIENT_PORT, CLIENT_IDS), KEYCLOAK_CONTAINER);
 
             ModelControllerClient client = managementClient.getControllerClient();
             ModelNode operation = createOpNode("system-property=" + OIDC_PROVIDER_URL, ModelDescriptionConstants.ADD);
@@ -791,7 +800,10 @@ public class OidcIdentityPropagationTestCase {
                     .when()
                     .delete(KEYCLOAK_CONTAINER.getAuthServerUrl() + "/admin/realms/" + TEST_REALM).then().statusCode(204);
 
-            super.tearDown(managementClient, containerId);
+            if (keycloakSetup != null) {
+                keycloakSetup.tearDown(managementClient,containerId);
+                KEYCLOAK_CONTAINER = null;
+            }
         }
     }
 

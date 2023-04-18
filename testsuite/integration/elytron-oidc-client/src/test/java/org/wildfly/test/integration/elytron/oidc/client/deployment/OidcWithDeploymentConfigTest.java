@@ -35,6 +35,7 @@ import org.jboss.arquillian.junit.Arquillian;
 import org.jboss.arquillian.junit.InSequence;
 import org.jboss.arquillian.test.api.ArquillianResource;
 import org.jboss.as.arquillian.api.ServerSetup;
+import org.jboss.as.arquillian.api.ServerSetupTask;
 import org.jboss.as.arquillian.container.ManagementClient;
 import org.jboss.as.controller.client.ModelControllerClient;
 import org.jboss.as.controller.descriptions.ModelDescriptionConstants;
@@ -47,6 +48,7 @@ import org.jboss.shrinkwrap.api.spec.WebArchive;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.wildfly.test.integration.elytron.oidc.client.KeycloakConfiguration;
+import org.wildfly.test.integration.elytron.oidc.client.KeycloakContainer;
 import org.wildfly.test.integration.elytron.oidc.client.OidcBaseTest;
 
 import io.restassured.RestAssured;
@@ -80,6 +82,8 @@ public class OidcWithDeploymentConfigTest extends OidcBaseTest {
     private static final String BEARER_ONLY_WITH_PROVIDER_URL_FILE = "BearerOnlyWithProviderUrl.json";
     private static final String BASIC_AUTH_WITH_PROVIDER_URL_FILE = "BasicAuthWithProviderUrl.json";
     private static final String CORS_WITH_PROVIDER_URL_FILE = "CorsWithProviderUrl.json";
+
+    private static KeycloakContainer KEYCLOAK_CONTAINER;
 
     private static Map<String, KeycloakConfiguration.ClientAppType> APP_NAMES;
     static {
@@ -397,13 +401,20 @@ public class OidcWithDeploymentConfigTest extends OidcBaseTest {
             deployer.undeploy(CORS_PROVIDER_URL_APP);
         }
     }
+    public KeycloakContainer getKeycloakContainer() {
+        return KEYCLOAK_CONTAINER;
+    }
 
-    static class KeycloakAndSystemPropertySetup extends KeycloakSetup {
+    static class KeycloakAndSystemPropertySetup implements ServerSetupTask {
+
+        private KeycloakSetup keycloakSetup;
 
         @Override
         public void setup(ManagementClient managementClient, String containerId) throws Exception {
-            super.setup(managementClient, containerId);
-            sendRealmCreationRequest(getRealmRepresentation(TEST_REALM, CLIENT_SECRET, CLIENT_HOST_NAME, CLIENT_PORT, APP_NAMES));
+            KEYCLOAK_CONTAINER = new KeycloakContainer();
+            keycloakSetup = new KeycloakSetup(KEYCLOAK_CONTAINER);
+            keycloakSetup.setup(managementClient, containerId);
+            sendRealmCreationRequest(getRealmRepresentation(TEST_REALM, CLIENT_SECRET, CLIENT_HOST_NAME, CLIENT_PORT, APP_NAMES), KEYCLOAK_CONTAINER);
 
             ModelControllerClient client = managementClient.getControllerClient();
             ModelNode operation = createOpNode("system-property=" + OIDC_PROVIDER_URL, ModelDescriptionConstants.ADD);
@@ -427,7 +438,6 @@ public class OidcWithDeploymentConfigTest extends OidcBaseTest {
                     .when()
                     .delete(KEYCLOAK_CONTAINER.getAuthServerUrl() + "/admin/realms/" + TEST_REALM).then().statusCode(204);
 
-            super.tearDown(managementClient, containerId);
             ModelControllerClient client = managementClient.getControllerClient();
             ModelNode operation = createOpNode("system-property=" + OIDC_PROVIDER_URL, ModelDescriptionConstants.REMOVE);
             Utils.applyUpdate(operation, client);
@@ -437,6 +447,11 @@ public class OidcWithDeploymentConfigTest extends OidcBaseTest {
 
             operation = createOpNode("system-property=" + WRONG_OIDC_PROVIDER_URL, ModelDescriptionConstants.REMOVE);
             Utils.applyUpdate(operation, client);
+
+            if (keycloakSetup != null) {
+                keycloakSetup.tearDown(managementClient,containerId);
+                KEYCLOAK_CONTAINER = null;
+            }
         }
     }
 }

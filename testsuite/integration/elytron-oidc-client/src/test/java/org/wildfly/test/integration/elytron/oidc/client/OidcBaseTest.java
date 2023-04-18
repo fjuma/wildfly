@@ -80,7 +80,6 @@ public abstract class OidcBaseTest {
 
     public static final String CLIENT_SECRET = "secret";
     public static final String OIDC_WITHOUT_SUBSYSTEM_CONFIG_WEB_XML = "web.xml";
-    public static KeycloakContainer KEYCLOAK_CONTAINER;
     public static final String TEST_REALM = "WildFly";
     private static final String KEYCLOAK_USERNAME = "username";
     private static final String KEYCLOAK_PASSWORD = "password";
@@ -120,15 +119,17 @@ public abstract class OidcBaseTest {
         }
     }
 
-    public static void sendRealmCreationRequest(RealmRepresentation realm) {
+    public abstract KeycloakContainer getKeycloakContainer();
+
+    public static void sendRealmCreationRequest(RealmRepresentation realm, KeycloakContainer keycloakContainer) {
         try {
             RestAssured
                     .given()
-                    .auth().oauth2(KeycloakConfiguration.getAdminAccessToken(KEYCLOAK_CONTAINER.getAuthServerUrl()))
+                    .auth().oauth2(KeycloakConfiguration.getAdminAccessToken(keycloakContainer.getAuthServerUrl()))
                     .contentType("application/json")
                     .body(JsonSerialization.writeValueAsBytes(realm))
                     .when()
-                    .post(KEYCLOAK_CONTAINER.getAuthServerUrl() + "/admin/realms").then()
+                    .post(keycloakContainer.getAuthServerUrl() + "/admin/realms").then()
                     .statusCode(201);
         } catch (IOException e) {
             throw new RuntimeException(e);
@@ -407,7 +408,7 @@ public abstract class OidcBaseTest {
                     // obtain a bearer token and then try accessing the endpoint with a query param specified
                     requestUri = new URL("http", TestSuiteEnvironment.getHttpAddress(), TestSuiteEnvironment.getHttpPort(),
                             "/" + appName + SimpleSecuredServlet.SERVLET_PATH + "?access_token="
-                                    + KeycloakConfiguration.getAccessToken(KEYCLOAK_CONTAINER.getAuthServerUrl(), TEST_REALM, username,
+                                    + KeycloakConfiguration.getAccessToken(getKeycloakContainer().getAuthServerUrl(), TEST_REALM, username,
                                     password, clientId, clientSecret)).toURI();
                 } else {
                     // try accessing the endpoint with the given bearer token specified using a query param
@@ -428,7 +429,7 @@ public abstract class OidcBaseTest {
                 getMethod = new HttpGet(requestUri);
                 if (bearerToken == null) {
                     // obtain a bearer token and then try accessing the endpoint with the Authorization header specified
-                    getMethod.addHeader("Authorization", "Bearer " + KeycloakConfiguration.getAccessToken(KEYCLOAK_CONTAINER.getAuthServerUrl(), TEST_REALM, username,
+                    getMethod.addHeader("Authorization", "Bearer " + KeycloakConfiguration.getAccessToken(getKeycloakContainer().getAuthServerUrl(), TEST_REALM, username,
                             password, clientId, clientSecret));
                 } else {
                     // try accessing the endpoint with the given bearer token specified using the Authorization header
@@ -480,7 +481,7 @@ public abstract class OidcBaseTest {
                 getMethod.addHeader(ORIGIN, originHeader);
                 if (bearerToken == null) {
                     // obtain a bearer token and then try accessing the endpoint with the Authorization header specified
-                    getMethod.addHeader("Authorization", "Bearer " + KeycloakConfiguration.getAccessToken(KEYCLOAK_CONTAINER.getAuthServerUrl(), TEST_REALM, username,
+                    getMethod.addHeader("Authorization", "Bearer " + KeycloakConfiguration.getAccessToken(getKeycloakContainer().getAuthServerUrl(), TEST_REALM, username,
                             password, clientId, clientSecret));
                 } else {
                     // try accessing the endpoint with the given bearer token specified using the Authorization header
@@ -577,16 +578,20 @@ public abstract class OidcBaseTest {
     }
 
     public static class KeycloakSetup implements ServerSetupTask {
+        private KeycloakContainer keycloakContainer;
+
+        public KeycloakSetup(KeycloakContainer keycloakContainer) {
+            this.keycloakContainer = keycloakContainer;
+        }
 
         @Override
         public void setup(ManagementClient managementClient, String containerId) throws Exception {
-            KEYCLOAK_CONTAINER = new KeycloakContainer();
-            KEYCLOAK_CONTAINER.start();
+            keycloakContainer.start();
         }
 
         public void tearDown(ManagementClient managementClient, String containerId) throws Exception {
-            if (KEYCLOAK_CONTAINER != null) {
-                KEYCLOAK_CONTAINER.stop();
+            if (keycloakContainer != null) {
+                keycloakContainer.stop();
             }
         }
     }

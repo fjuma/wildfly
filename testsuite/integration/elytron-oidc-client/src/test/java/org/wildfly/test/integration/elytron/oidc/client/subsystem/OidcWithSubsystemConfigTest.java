@@ -34,6 +34,7 @@ import org.jboss.arquillian.container.test.api.OperateOnDeployment;
 import org.jboss.arquillian.container.test.api.RunAsClient;
 import org.jboss.arquillian.junit.Arquillian;
 import org.jboss.as.arquillian.api.ServerSetup;
+import org.jboss.as.arquillian.api.ServerSetupTask;
 import org.jboss.as.arquillian.container.ManagementClient;
 import org.jboss.as.controller.client.ModelControllerClient;
 import org.jboss.as.controller.descriptions.ModelDescriptionConstants;
@@ -48,6 +49,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.wildfly.extension.elytron.oidc.ElytronOidcExtension;
 import org.wildfly.test.integration.elytron.oidc.client.KeycloakConfiguration;
+import org.wildfly.test.integration.elytron.oidc.client.KeycloakContainer;
 import org.wildfly.test.integration.elytron.oidc.client.OidcBaseTest;
 
 import io.restassured.RestAssured;
@@ -69,6 +71,7 @@ public class OidcWithSubsystemConfigTest extends OidcBaseTest {
     private static final String SECURE_DEPLOYMENT_ADDRESS = "subsystem=" + ElytronOidcExtension.SUBSYSTEM_NAME + "/secure-deployment=";
     private static final String PROVIDER_ADDRESS = "subsystem=" + ElytronOidcExtension.SUBSYSTEM_NAME + "/provider=";
     private static final String REALM_ADDRESS = "subsystem=" + ElytronOidcExtension.SUBSYSTEM_NAME + "/realm=";
+    private static KeycloakContainer KEYCLOAK_CONTAINER;
 
     static {
         APP_NAMES = new HashMap<>();
@@ -156,12 +159,20 @@ public class OidcWithSubsystemConfigTest extends OidcBaseTest {
         loginToApp(SUBSYSTEM_OVERRIDE_APP, KeycloakConfiguration.ALICE, KeycloakConfiguration.ALICE_PASSWORD, HttpURLConnection.HTTP_OK, SimpleServlet.RESPONSE_BODY);
     }
 
-    static class KeycloakAndSubsystemSetup extends KeycloakSetup {
+    public KeycloakContainer getKeycloakContainer() {
+        return KEYCLOAK_CONTAINER;
+    }
+
+    static class KeycloakAndSubsystemSetup implements ServerSetupTask {
+
+        private KeycloakSetup keycloakSetup;
 
         @Override
         public void setup(ManagementClient managementClient, String containerId) throws Exception {
-            super.setup(managementClient, containerId);
-            sendRealmCreationRequest(getRealmRepresentation(TEST_REALM, CLIENT_SECRET, CLIENT_HOST_NAME, CLIENT_PORT, APP_NAMES));
+            KEYCLOAK_CONTAINER = new KeycloakContainer();
+            keycloakSetup = new KeycloakSetup(KEYCLOAK_CONTAINER);
+            keycloakSetup.setup(managementClient, containerId);
+            sendRealmCreationRequest(getRealmRepresentation(TEST_REALM, CLIENT_SECRET, CLIENT_HOST_NAME, CLIENT_PORT, APP_NAMES), KEYCLOAK_CONTAINER);
 
             ModelControllerClient client = managementClient.getControllerClient();
             ModelNode operation = createOpNode(PROVIDER_ADDRESS + KEYCLOAK_PROVIDER , ModelDescriptionConstants.ADD);
@@ -284,7 +295,11 @@ public class OidcWithSubsystemConfigTest extends OidcBaseTest {
                     .auth().oauth2(KeycloakConfiguration.getAdminAccessToken(KEYCLOAK_CONTAINER.getAuthServerUrl()))
                     .when()
                     .delete(KEYCLOAK_CONTAINER.getAuthServerUrl() + "/admin/realms/" + TEST_REALM).then().statusCode(204);
-            super.tearDown(managementClient, containerId);
+
+            if (keycloakSetup != null) {
+                keycloakSetup.tearDown(managementClient,containerId);
+                KEYCLOAK_CONTAINER = null;
+            }
         }
 
         private static void removeSecureDeployment(ModelControllerClient client, String name) throws Exception {
