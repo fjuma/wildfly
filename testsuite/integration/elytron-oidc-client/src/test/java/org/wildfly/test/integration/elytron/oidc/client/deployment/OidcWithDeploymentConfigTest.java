@@ -407,13 +407,10 @@ public class OidcWithDeploymentConfigTest extends OidcBaseTest {
 
     static class KeycloakAndSystemPropertySetup implements ServerSetupTask {
 
-        private KeycloakSetup keycloakSetup;
-
         @Override
         public void setup(ManagementClient managementClient, String containerId) throws Exception {
             KEYCLOAK_CONTAINER = new KeycloakContainer();
-            keycloakSetup = new KeycloakSetup(KEYCLOAK_CONTAINER);
-            keycloakSetup.setup(managementClient, containerId);
+            KEYCLOAK_CONTAINER.start();
             sendRealmCreationRequest(getRealmRepresentation(TEST_REALM, CLIENT_SECRET, CLIENT_HOST_NAME, CLIENT_PORT, APP_NAMES), KEYCLOAK_CONTAINER);
 
             ModelControllerClient client = managementClient.getControllerClient();
@@ -448,8 +445,8 @@ public class OidcWithDeploymentConfigTest extends OidcBaseTest {
             operation = createOpNode("system-property=" + WRONG_OIDC_PROVIDER_URL, ModelDescriptionConstants.REMOVE);
             Utils.applyUpdate(operation, client);
 
-            if (keycloakSetup != null) {
-                keycloakSetup.tearDown(managementClient,containerId);
+            if (KEYCLOAK_CONTAINER != null) {
+                KEYCLOAK_CONTAINER.stop();
                 KEYCLOAK_CONTAINER = null;
             }
         }

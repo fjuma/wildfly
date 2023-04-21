@@ -53,8 +53,6 @@ import org.apache.http.message.BasicNameValuePair;
 import org.apache.http.protocol.BasicHttpContext;
 import org.apache.http.protocol.HttpContext;
 import org.jboss.arquillian.container.test.api.OperateOnDeployment;
-import org.jboss.as.arquillian.api.ServerSetupTask;
-import org.jboss.as.arquillian.container.ManagementClient;
 import org.jboss.as.test.http.util.TestHttpClientUtils;
 import org.jboss.as.test.integration.security.common.servlets.SimpleSecuredServlet;
 import org.jboss.as.test.integration.security.common.servlets.SimpleServlet;
@@ -574,25 +572,6 @@ public abstract class OidcBaseTest {
             }
         } finally {
             HttpClientUtils.closeQuietly(response);
-        }
-    }
-
-    public static class KeycloakSetup implements ServerSetupTask {
-        private KeycloakContainer keycloakContainer;
-
-        public KeycloakSetup(KeycloakContainer keycloakContainer) {
-            this.keycloakContainer = keycloakContainer;
-        }
-
-        @Override
-        public void setup(ManagementClient managementClient, String containerId) throws Exception {
-            keycloakContainer.start();
-        }
-
-        public void tearDown(ManagementClient managementClient, String containerId) throws Exception {
-            if (keycloakContainer != null) {
-                keycloakContainer.stop();
-            }
         }
     }
 
