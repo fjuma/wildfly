@@ -23,6 +23,7 @@
 package org.wildfly.test.integration.elytron.oidc.client;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
 import static org.wildfly.test.integration.elytron.oidc.client.KeycloakConfiguration.ALLOWED_ORIGIN;
@@ -121,9 +122,11 @@ public abstract class OidcBaseTest {
 
     public static void sendRealmCreationRequest(RealmRepresentation realm, KeycloakContainer keycloakContainer) {
         try {
+            String adminAccessToken = KeycloakConfiguration.getAdminAccessToken(keycloakContainer.getAuthServerUrl());
+            assertNotNull(adminAccessToken);
             RestAssured
                     .given()
-                    .auth().oauth2(KeycloakConfiguration.getAdminAccessToken(keycloakContainer.getAuthServerUrl()))
+                    .auth().oauth2(adminAccessToken)
                     .contentType("application/json")
                     .body(JsonSerialization.writeValueAsBytes(realm))
                     .when()
@@ -142,7 +145,11 @@ public abstract class OidcBaseTest {
     @Test
     @OperateOnDeployment(PROVIDER_URL_APP)
     public void testWrongPasswordWithProviderUrl() throws Exception {
-        loginToApp(PROVIDER_URL_APP, org.wildfly.test.integration.elytron.oidc.client.KeycloakConfiguration.ALICE, "WRONG_PASSWORD", HttpURLConnection.HTTP_OK, "Invalid username or password");
+        try {
+            loginToApp(PROVIDER_URL_APP, org.wildfly.test.integration.elytron.oidc.client.KeycloakConfiguration.ALICE, "WRONG_PASSWORD", HttpURLConnection.HTTP_OK, "Invalid username or password");
+        } finally {
+            getKeycloakContainer().getLogs();
+        }
     }
 
     @Test

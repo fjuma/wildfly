@@ -156,7 +156,11 @@ public class OidcWithSubsystemConfigTest extends OidcBaseTest {
     @OperateOnDeployment(SUBSYSTEM_OVERRIDE_APP)
     public void testSubsystemOverride() throws Exception {
         // deployment contains an invalid provider-url but the subsystem contains a valid one, the subsystem config should take precedence
-        loginToApp(SUBSYSTEM_OVERRIDE_APP, KeycloakConfiguration.ALICE, KeycloakConfiguration.ALICE_PASSWORD, HttpURLConnection.HTTP_OK, SimpleServlet.RESPONSE_BODY);
+        try {
+            loginToApp(SUBSYSTEM_OVERRIDE_APP, KeycloakConfiguration.ALICE, KeycloakConfiguration.ALICE_PASSWORD, HttpURLConnection.HTTP_OK, SimpleServlet.RESPONSE_BODY);
+        } finally {
+            System.out.println(getKeycloakContainer().getLogs());
+        }
     }
 
     public KeycloakContainer getKeycloakContainer() {
@@ -273,10 +277,12 @@ public class OidcWithSubsystemConfigTest extends OidcBaseTest {
             Utils.applyUpdate(operation, client);
 
             ServerReload.executeReloadAndWaitForCompletion(managementClient);
+            System.out.println("LOGS BEFORE " + KEYCLOAK_CONTAINER.getLogs());
         }
 
         @Override
         public void tearDown(ManagementClient managementClient, String containerId) throws Exception {
+            System.out.println("LOGS AFTER " + KEYCLOAK_CONTAINER.getLogs());
             ModelControllerClient client = managementClient.getControllerClient();
             for (String appName : APP_NAMES.keySet()) {
                 if (! appName.equals(CORS_CLIENT) && ! appName.equals(DIRECT_ACCCESS_GRANT_ENABLED_CLIENT)) {

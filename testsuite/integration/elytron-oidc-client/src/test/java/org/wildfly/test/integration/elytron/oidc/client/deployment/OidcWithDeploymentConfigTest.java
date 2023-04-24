@@ -425,10 +425,12 @@ public class OidcWithDeploymentConfigTest extends OidcBaseTest {
             operation = createOpNode("system-property=" + WRONG_OIDC_PROVIDER_URL, ModelDescriptionConstants.ADD);
             operation.get("value").set("http://fakeauthserver/auth"); // provider url does not exist
             Utils.applyUpdate(operation, client);
+            System.out.println("LOGS BEFORE " + KEYCLOAK_CONTAINER.getLogs());
         }
 
         @Override
         public void tearDown(ManagementClient managementClient, String containerId) throws Exception {
+            System.out.println("LOGS AFTER " + KEYCLOAK_CONTAINER.getLogs());
             RestAssured
                     .given()
                     .auth().oauth2(org.wildfly.test.integration.elytron.oidc.client.KeycloakConfiguration.getAdminAccessToken(KEYCLOAK_CONTAINER.getAuthServerUrl()))
