@@ -18,6 +18,9 @@
 
 package org.wildfly.extension.elytron.oidc;
 
+import static org.jboss.as.server.security.VirtualDomainUtil.HTTP_AUTHENTICATION_FACTORY_CAPABILITY;
+import static org.jboss.as.server.security.VirtualDomainUtil.HTTP_AUTHENTICATION_FACTORY_RUNTIME_CAPABILITY;
+import static org.jboss.as.server.security.VirtualDomainUtil.getVirtualHttpAuthenticationFactoryServiceName;
 import static org.wildfly.extension.elytron.oidc.ProviderAttributeDefinitions.DISABLE_TRUST_MANAGER;
 import static org.wildfly.extension.elytron.oidc._private.ElytronOidcLogger.ROOT_LOGGER;
 
@@ -39,8 +42,13 @@ import org.jboss.as.controller.operations.validation.IntRangeValidator;
 import org.jboss.as.controller.operations.validation.StringLengthValidator;
 import org.jboss.as.controller.registry.ManagementResourceRegistration;
 import org.jboss.as.controller.registry.OperationEntry;
+import org.jboss.as.controller.registry.Resource;
+import org.jboss.as.server.security.VirtualDomainMarkerUtility;
 import org.jboss.dmr.ModelNode;
 import org.jboss.dmr.ModelType;
+import org.jboss.msc.service.ServiceBuilder;
+import org.jboss.msc.service.ServiceController;
+import org.wildfly.security.auth.server.HttpAuthenticationFactory;
 
 /**
  * A {@link ResourceDefinition} for securing deployments via OpenID Connect.
@@ -151,6 +159,8 @@ class SecureDeploymentDefinition extends SimpleResourceDefinition {
         }
     }
 
+    private static final String WAR_FILE_EXTENSION = ".war";
+
     SecureDeploymentDefinition() {
         super(new Parameters(PathElement.pathElement(ElytronOidcDescriptionConstants.SECURE_DEPLOYMENT),
                 ElytronOidcExtension.getResourceDescriptionResolver(ElytronOidcDescriptionConstants.SECURE_DEPLOYMENT))
@@ -194,8 +204,31 @@ class SecureDeploymentDefinition extends SimpleResourceDefinition {
             if (disableTrustManager) {
                 ROOT_LOGGER.disableTrustManagerSetToTrue();
             }
+            String secureDeploymentName = context.getCurrentAddressValue();
             OidcConfigService oidcConfigService = OidcConfigService.getInstance();
-            oidcConfigService.addSecureDeployment(context.getCurrentAddressValue(), context.resolveExpressions(model));
+            oidcConfigService.addSecureDeployment(secureDeploymentName, context.resolveExpressions(model));
+
+            if (isVirtualDomainRequired(context)) {
+                ServiceBuilder<HttpAuthenticationFactory> serviceBuilder = (ServiceBuilder<HttpAuthenticationFactory>)context.getCapabilityServiceTarget()
+                        .addCapability(HTTP_AUTHENTICATION_FACTORY_RUNTIME_CAPABILITY)
+                        .setInitialMode(ServiceController.Mode.ACTIVE);
+                serviceBuilder.setInstance(new VirtualHttpAuthenticationFactoryService(oidcConfigService.getJSON(secureDeploymentName)));
+                serviceBuilder.provides(getVirtualHttpAuthenticationFactoryServiceName());
+                serviceBuilder.install();
+
+                if (! context.isBooting()) {
+                    context.reloadRequired();
+                }
+            }
+        }
+
+        @Override
+        protected void recordCapabilitiesAndRequirements(OperationContext context, ModelNode operation, Resource resource) throws OperationFailedException {
+            super.recordCapabilitiesAndRequirements(context, operation, resource);
+            if (isVirtualDomainRequired(context)) {
+                context.registerCapability(HTTP_AUTHENTICATION_FACTORY_RUNTIME_CAPABILITY);
+                VirtualDomainMarkerUtility.virtualDomainRequired(context);
+            }
         }
     }
 
@@ -212,7 +245,7 @@ class SecureDeploymentDefinition extends SimpleResourceDefinition {
             OidcConfigService oidcConfigService = OidcConfigService.getInstance();
             oidcConfigService.updateSecureDeployment(context.getCurrentAddressValue(), attributeName, resolvedValue);
             handbackHolder.setHandback(oidcConfigService);
-            return false;
+            return isVirtualDomainRequired(context);
         }
 
         @Override
@@ -232,6 +265,21 @@ class SecureDeploymentDefinition extends SimpleResourceDefinition {
         protected void performRuntime(OperationContext context, ModelNode operation, ModelNode model) throws OperationFailedException {
             OidcConfigService oidcConfigService = OidcConfigService.getInstance();
             oidcConfigService.removeSecureDeployment(context.getCurrentAddressValue());
+            if (isVirtualDomainRequired(context)) {
+                context.reloadRequired();
+            }
         }
+
+        @Override
+        protected void recordCapabilitiesAndRequirements(OperationContext context, ModelNode operation, Resource resource) throws OperationFailedException {
+            super.recordCapabilitiesAndRequirements(context, operation, resource);
+            if (isVirtualDomainRequired(context)) {
+                context.deregisterCapability(HTTP_AUTHENTICATION_FACTORY_CAPABILITY);
+            }
+        }
+    }
+
+    static boolean isVirtualDomainRequired(OperationContext context) {
+        return ! context.getCurrentAddressValue().endsWith(WAR_FILE_EXTENSION);
     }
 }
