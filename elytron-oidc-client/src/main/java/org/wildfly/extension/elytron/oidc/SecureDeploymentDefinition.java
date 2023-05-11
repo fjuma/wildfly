@@ -208,7 +208,7 @@ class SecureDeploymentDefinition extends SimpleResourceDefinition {
             OidcConfigService oidcConfigService = OidcConfigService.getInstance();
             oidcConfigService.addSecureDeployment(secureDeploymentName, context.resolveExpressions(model));
 
-            if (isVirtualDomainRequired(context)) {
+            if (! isWarDeployment(context)) {
                 ServiceBuilder<HttpAuthenticationFactory> serviceBuilder = (ServiceBuilder<HttpAuthenticationFactory>)context.getCapabilityServiceTarget()
                         .addCapability(HTTP_AUTHENTICATION_FACTORY_RUNTIME_CAPABILITY)
                         .setInitialMode(ServiceController.Mode.ACTIVE);
@@ -225,7 +225,7 @@ class SecureDeploymentDefinition extends SimpleResourceDefinition {
         @Override
         protected void recordCapabilitiesAndRequirements(OperationContext context, ModelNode operation, Resource resource) throws OperationFailedException {
             super.recordCapabilitiesAndRequirements(context, operation, resource);
-            if (isVirtualDomainRequired(context)) {
+            if (! isWarDeployment(context)) {
                 context.registerCapability(HTTP_AUTHENTICATION_FACTORY_RUNTIME_CAPABILITY);
                 VirtualDomainMarkerUtility.virtualDomainRequired(context);
             }
@@ -245,7 +245,7 @@ class SecureDeploymentDefinition extends SimpleResourceDefinition {
             OidcConfigService oidcConfigService = OidcConfigService.getInstance();
             oidcConfigService.updateSecureDeployment(context.getCurrentAddressValue(), attributeName, resolvedValue);
             handbackHolder.setHandback(oidcConfigService);
-            return isVirtualDomainRequired(context);
+            return ! isWarDeployment(context);
         }
 
         @Override
@@ -265,7 +265,7 @@ class SecureDeploymentDefinition extends SimpleResourceDefinition {
         protected void performRuntime(OperationContext context, ModelNode operation, ModelNode model) throws OperationFailedException {
             OidcConfigService oidcConfigService = OidcConfigService.getInstance();
             oidcConfigService.removeSecureDeployment(context.getCurrentAddressValue());
-            if (isVirtualDomainRequired(context)) {
+            if (! isWarDeployment(context)) {
                 context.reloadRequired();
             }
         }
@@ -273,13 +273,13 @@ class SecureDeploymentDefinition extends SimpleResourceDefinition {
         @Override
         protected void recordCapabilitiesAndRequirements(OperationContext context, ModelNode operation, Resource resource) throws OperationFailedException {
             super.recordCapabilitiesAndRequirements(context, operation, resource);
-            if (isVirtualDomainRequired(context)) {
+            if ( ! isWarDeployment(context)) {
                 context.deregisterCapability(HTTP_AUTHENTICATION_FACTORY_CAPABILITY);
             }
         }
     }
 
-    static boolean isVirtualDomainRequired(OperationContext context) {
-        return ! context.getCurrentAddressValue().endsWith(WAR_FILE_EXTENSION);
+    static boolean isWarDeployment(OperationContext context) {
+        return context.getCurrentAddressValue().endsWith(WAR_FILE_EXTENSION);
     }
 }
