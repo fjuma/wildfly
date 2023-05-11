@@ -18,6 +18,7 @@
 
 package org.wildfly.extension.elytron.oidc;
 
+import static org.wildfly.extension.elytron.oidc.ElytronOidcDescriptionConstants.SECURE_SERVER;
 import static org.wildfly.extension.elytron.oidc.ProviderAttributeDefinitions.DISABLE_TRUST_MANAGER;
 import static org.wildfly.extension.elytron.oidc.SecureDeploymentDefinition.ALL_ATTRIBUTES;
 import static org.wildfly.extension.elytron.oidc.SecureDeploymentDefinition.CLIENT_ID;
@@ -63,6 +64,7 @@ import org.jboss.msc.service.StartContext;
 import org.jboss.msc.service.StartException;
 import org.jboss.msc.service.StopContext;
 import org.jboss.msc.value.InjectedValue;
+import org.wildfly.security.http.oidc.Oidc;
 
 /**
  * A {@link ResourceDefinition} for securing deployments via OpenID Connect.
@@ -71,9 +73,11 @@ import org.jboss.msc.value.InjectedValue;
  */
 class SecureServerDefinition extends SimpleResourceDefinition {
 
+    private static String HTTP_MANAGEMENT_CONTEXT = "http-management-context";
+
     SecureServerDefinition() {
-        super(new Parameters(PathElement.pathElement(ElytronOidcDescriptionConstants.SECURE_SERVER),
-                ElytronOidcExtension.getResourceDescriptionResolver(ElytronOidcDescriptionConstants.SECURE_SERVER))
+        super(new Parameters(PathElement.pathElement(SECURE_SERVER),
+                ElytronOidcExtension.getResourceDescriptionResolver(SECURE_SERVER))
                 .setAddHandler(SecureServerDefinition.SecureServerAddHandler.INSTANCE)
                 .setRemoveHandler(SecureServerDefinition.SecureServerRemoveHandler.INSTANCE)
                 .setAddRestartLevel(OperationEntry.Flag.RESTART_RESOURCE_SERVICES)
@@ -121,9 +125,10 @@ class SecureServerDefinition extends SimpleResourceDefinition {
             ServiceTarget serviceTarget = context.getServiceTarget();
             InjectedValue<ExtensibleHttpManagement> extensibleHttpManagement = new InjectedValue<>();
             String secureServerName = context.getCurrentAddressValue();
-            ServiceName serviceName = ServiceName.of("secure-server", secureServerName);
-            serviceTarget.addService(serviceName.append("http-management-context"), createHttpManagementConfigContextService(secureServerName, extensibleHttpManagement))
-                    .addDependency(context.getCapabilityServiceName(HTTP_MANAGEMENT_HTTP_EXTENSIBLE_CAPABILITY, ExtensibleHttpManagement.class), ExtensibleHttpManagement.class, extensibleHttpManagement).setInitialMode(ServiceController.Mode.ACTIVE).install();
+            ServiceName serviceName = ServiceName.of(SECURE_SERVER, secureServerName);
+            serviceTarget.addService(serviceName.append(HTTP_MANAGEMENT_CONTEXT), createHttpManagementConfigContextService(secureServerName, extensibleHttpManagement))
+                    .addDependency(context.getCapabilityServiceName(HTTP_MANAGEMENT_HTTP_EXTENSIBLE_CAPABILITY, ExtensibleHttpManagement.class),
+                            ExtensibleHttpManagement.class, extensibleHttpManagement).setInitialMode(ServiceController.Mode.ACTIVE).install();
         }
     }
 
@@ -164,7 +169,7 @@ class SecureServerDefinition extends SimpleResourceDefinition {
     }
 
     private static Service<Void> createHttpManagementConfigContextService(final String secureServerName, final InjectedValue<ExtensibleHttpManagement> httpConfigContext) {
-        final String contextName = "/keycloak/adapter/" + secureServerName + "/";
+        final String contextName = "/oidc/" + secureServerName + "/";
         return new Service<Void>() {
             public void start(StartContext startContext) throws StartException {
                 ExtensibleHttpManagement extensibleHttpManagement = (ExtensibleHttpManagement)httpConfigContext.getValue();
@@ -207,7 +212,7 @@ class SecureServerDefinition extends SimpleResourceDefinition {
                             }
 
                             public String getContentType(MimeMappings mimeMappings) {
-                                return "application/json";
+                                return Oidc.JSON_CONTENT_TYPE;
                             }
 
                             public void serve(Sender sender, HttpServerExchange exchange, IoCallback completionCallback) {
