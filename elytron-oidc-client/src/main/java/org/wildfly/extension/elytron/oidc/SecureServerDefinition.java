@@ -175,8 +175,9 @@ class SecureServerDefinition extends SimpleResourceDefinition {
                 ExtensibleHttpManagement extensibleHttpManagement = (ExtensibleHttpManagement)httpConfigContext.getValue();
                 extensibleHttpManagement.addStaticContext(contextName, new ResourceManager() {
                     public Resource getResource(final String path) throws IOException {
-                        OidcConfigService adapterConfigService = OidcConfigService.getInstance();
-                        final String config = adapterConfigService.getJSON(secureServerName);
+                        OidcConfigService oidcConfigService = OidcConfigService.getInstance();
+                        // need to convert to realm configuration to work with the Keycloak JavaScript adapter that HAL uses
+                        final String config = oidcConfigService.getJSON(secureServerName, true);
 
                         if (config == null) {
                             return null;
