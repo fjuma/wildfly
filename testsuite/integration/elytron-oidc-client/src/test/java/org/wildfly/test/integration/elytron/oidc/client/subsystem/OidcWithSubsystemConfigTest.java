@@ -72,6 +72,7 @@ public class OidcWithSubsystemConfigTest extends OidcBaseTest {
     private static final String REALM_ADDRESS = "subsystem=" + ElytronOidcExtension.SUBSYSTEM_NAME + "/realm=";
     private static final String WILDFLY_CONSOLE = "wildfly-console";
     private static final String WILDFLY_MANAGEMENT = "wildfly-management";
+    private static final String HAL_BODY = "Add and manage deployments";
 
     static {
         APP_NAMES = new HashMap<>();
@@ -163,7 +164,7 @@ public class OidcWithSubsystemConfigTest extends OidcBaseTest {
 
     @Test
     public void testManagementConsoleWithProviderUrl() throws Exception {
-        loginToConsole(KeycloakConfiguration.ALICE, KeycloakConfiguration.ALICE_PASSWORD, HttpURLConnection.HTTP_OK, SimpleServlet.RESPONSE_BODY, true);
+        loginToConsole(KeycloakConfiguration.ALICE, KeycloakConfiguration.ALICE_PASSWORD, HttpURLConnection.HTTP_OK, HAL_BODY, true);
     }
 
     static class KeycloakAndSubsystemSetup extends KeycloakSetup {
