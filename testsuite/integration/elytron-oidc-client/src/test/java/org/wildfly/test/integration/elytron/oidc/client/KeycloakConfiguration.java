@@ -20,7 +20,6 @@ package org.wildfly.test.integration.elytron.oidc.client;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -43,6 +42,7 @@ public class KeycloakConfiguration {
 
     private static final String USER_ROLE = "user";
     public static final String JBOSS_ADMIN_ROLE = "JBossAdmin";
+    private static final String CONSOLE_ROLE = "ADMINISTRATOR";
     public static final String ALICE = "alice";
     public static final String ALICE_PASSWORD = "alice123+";
     public static final String BOB = "bob";
@@ -50,12 +50,14 @@ public class KeycloakConfiguration {
     public static final String CHARLIE = "charlie";
     public static final String CHARLIE_PASSWORD = "charlie123+";
     public static final String ALLOWED_ORIGIN = "http://somehost";
+    public static final String CONSOLE = "console";
 
     public enum ClientAppType {
         OIDC_CLIENT,
         DIRECT_ACCESS_GRANT_OIDC_CLIENT,
         BEARER_ONLY_CLIENT,
-        CORS_CLIENT
+        CORS_CLIENT,
+        CONSOLE_CLIENT
     }
 
     /**
@@ -70,8 +72,9 @@ public class KeycloakConfiguration {
      * </ul>
      */
     public static RealmRepresentation getRealmRepresentation(final String realmName, String clientSecret,
-                                                             String clientHostName, int clientPort, Map<String, ClientAppType> clientApps) {
-        return createRealm(realmName, clientSecret, clientHostName, clientPort, clientApps);
+                                                             String clientHostName, int clientPort,
+                                                             String serverHostName, int serverPort, Map<String, ClientAppType> clientApps) {
+        return createRealm(realmName, clientSecret, clientHostName, clientPort, serverHostName, serverPort, clientApps);
     }
 
     public static String getAdminAccessToken(String authServerUrl) {
@@ -100,7 +103,8 @@ public class KeycloakConfiguration {
     }
 
     private static RealmRepresentation createRealm(String name, String clientSecret,
-                                                   String clientHostName, int clientPort, Map<String, ClientAppType> clientApps) {
+                                                   String clientHostName, int clientPort,
+                                                   String serverHostName, int serverPort, Map<String, ClientAppType> clientApps) {
         RealmRepresentation realm = new RealmRepresentation();
 
         realm.setRealm(name);
@@ -131,12 +135,15 @@ public class KeycloakConfiguration {
                 case CORS_CLIENT:
                     realm.getClients().add(createWebAppClient(clientApp, clientSecret, clientHostName, clientPort, clientApp, true, ALLOWED_ORIGIN));
                     break;
+                case CONSOLE_CLIENT:
+                    realm.getClients().add(createWebAppClient(clientApp, clientSecret, serverHostName, serverPort, CONSOLE, false, "http://" + serverHostName + ":" + serverPort));
+                    break;
                 default:
                     realm.getClients().add(createWebAppClient(clientApp, clientSecret, clientHostName, clientPort, clientApp, false));
             }
         }
 
-        realm.getUsers().add(createUser(ALICE, ALICE_PASSWORD, Arrays.asList(USER_ROLE, JBOSS_ADMIN_ROLE)));
+        realm.getUsers().add(createUser(ALICE, ALICE_PASSWORD, Arrays.asList(USER_ROLE, JBOSS_ADMIN_ROLE, CONSOLE_ROLE)));
         realm.getUsers().add(createUser(BOB, BOB_PASSWORD, Arrays.asList(USER_ROLE)));
         realm.getUsers().add(createUser(CHARLIE, CHARLIE_PASSWORD, Arrays.asList(USER_ROLE, JBOSS_ADMIN_ROLE)));
         return realm;
@@ -158,7 +165,7 @@ public class KeycloakConfiguration {
         client.setEnabled(true);
         client.setDirectAccessGrantsEnabled(directAccessGrantEnabled);
         if (allowedOrigin != null) {
-            client.setWebOrigins(Collections.singletonList(allowedOrigin));
+            client.setWebOrigins(Arrays.asList("http://" + "localhost" + ":" + 9990 + "/" + clientApp, "http://" + "127.0.0.1" + ":" + 9990 + "/" + clientApp));
         }
         return client;
     }

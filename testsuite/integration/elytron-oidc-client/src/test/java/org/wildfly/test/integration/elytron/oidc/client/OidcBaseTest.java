@@ -86,6 +86,8 @@ public abstract class OidcBaseTest {
     private static final String KEYCLOAK_PASSWORD = "password";
     public static final int CLIENT_PORT = TestSuiteEnvironment.getHttpPort();
     public static final String CLIENT_HOST_NAME = TestSuiteEnvironment.getHttpAddress();
+    public static final String SERVER_HOST_NAME = TestSuiteEnvironment.getServerAddress();
+    public static final int SERVER_PORT = TestSuiteEnvironment.getServerPort();
     public static final String PROVIDER_URL_APP = "ProviderUrlOidcApp";
     public static final String AUTH_SERVER_URL_APP = "AuthServerUrlOidcApp";
     public static final String WRONG_PROVIDER_URL_APP = "WrongProviderUrlOidcApp";
@@ -356,6 +358,11 @@ public abstract class OidcBaseTest {
     public static void loginToApp(String appName, String username, String password, int expectedStatusCode, String expectedText, boolean loginToKeycloak) throws Exception {
         loginToApp(username, password, expectedStatusCode, expectedText, loginToKeycloak, new URL("http", TestSuiteEnvironment.getHttpAddress(), TestSuiteEnvironment.getHttpPort(),
                 "/" + appName + SimpleSecuredServlet.SERVLET_PATH).toURI());
+    }
+
+    public static void loginToConsole(String username, String password, int expectedStatusCode, String expectedText, boolean loginToKeycloak) throws Exception {
+        loginToApp(username, password, expectedStatusCode, expectedText, loginToKeycloak, new URL("http", TestSuiteEnvironment.getServerAddress(), TestSuiteEnvironment.getServerPort(),
+                 "").toURI());
     }
 
     public static void loginToApp(String username, String password, int expectedStatusCode, String expectedText, boolean loginToKeycloak, URI requestUri) throws Exception {

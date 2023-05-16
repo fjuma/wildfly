@@ -40,7 +40,7 @@ import org.jboss.as.controller.descriptions.ModelDescriptionConstants;
 import org.jboss.as.test.integration.security.common.Utils;
 import org.jboss.as.test.integration.security.common.servlets.SimpleSecuredServlet;
 import org.jboss.as.test.integration.security.common.servlets.SimpleServlet;
-import org.jboss.as.test.shared.IntermittentFailure;
+//import org.jboss.as.test.shared.IntermittentFailure;
 import org.jboss.as.test.shared.ServerReload;
 import org.jboss.dmr.ModelNode;
 import org.jboss.shrinkwrap.api.ShrinkWrap;
@@ -66,7 +66,7 @@ public class OidcWithSubsystemConfigTest extends OidcBaseTest {
 
     @BeforeClass
     public static void beforeClass() {
-        IntermittentFailure.thisTestIsFailingIntermittently("https://issues.redhat.com/browse/WFLY-17102 Intermittent failures in OidcWithSubsystemConfigTest");
+        //IntermittentFailure.thisTestIsFailingIntermittently("https://issues.redhat.com/browse/WFLY-17102 Intermittent failures in OidcWithSubsystemConfigTest");
     }
 
     private static final String SUBSYSTEM_OVERRIDE_APP = "SubsystemOverrideOidcApp";
@@ -74,8 +74,11 @@ public class OidcWithSubsystemConfigTest extends OidcBaseTest {
     private static final String KEYCLOAK_PROVIDER = "keycloak";
     private static Map<String, KeycloakConfiguration.ClientAppType> APP_NAMES;
     private static final String SECURE_DEPLOYMENT_ADDRESS = "subsystem=" + ElytronOidcExtension.SUBSYSTEM_NAME + "/secure-deployment=";
+    private static final String SECURE_SERVER_ADDRESS = "subsystem=" + ElytronOidcExtension.SUBSYSTEM_NAME + "/secure-server=";
     private static final String PROVIDER_ADDRESS = "subsystem=" + ElytronOidcExtension.SUBSYSTEM_NAME + "/provider=";
     private static final String REALM_ADDRESS = "subsystem=" + ElytronOidcExtension.SUBSYSTEM_NAME + "/realm=";
+    private static final String WILDFLY_CONSOLE = "wildfly-console";
+    private static final String WILDFLY_MANAGEMENT = "wildfly-management";
 
     static {
         APP_NAMES = new HashMap<>();
@@ -90,6 +93,8 @@ public class OidcWithSubsystemConfigTest extends OidcBaseTest {
         APP_NAMES.put(BASIC_AUTH_PROVIDER_URL_APP, KeycloakConfiguration.ClientAppType.BEARER_ONLY_CLIENT);
         APP_NAMES.put(CORS_PROVIDER_URL_APP, KeycloakConfiguration.ClientAppType.BEARER_ONLY_CLIENT);
         APP_NAMES.put(CORS_CLIENT, KeycloakConfiguration.ClientAppType.CORS_CLIENT);
+        APP_NAMES.put(WILDFLY_MANAGEMENT, KeycloakConfiguration.ClientAppType.BEARER_ONLY_CLIENT);
+        APP_NAMES.put(WILDFLY_CONSOLE, KeycloakConfiguration.ClientAppType.CONSOLE_CLIENT);
     }
 
     @Deployment(name = PROVIDER_URL_APP)
@@ -163,12 +168,17 @@ public class OidcWithSubsystemConfigTest extends OidcBaseTest {
         loginToApp(SUBSYSTEM_OVERRIDE_APP, KeycloakConfiguration.ALICE, KeycloakConfiguration.ALICE_PASSWORD, HttpURLConnection.HTTP_OK, SimpleServlet.RESPONSE_BODY);
     }
 
+    @Test
+    public void testManagementConsoleWithProviderUrl() throws Exception {
+        loginToConsole(KeycloakConfiguration.ALICE, KeycloakConfiguration.ALICE_PASSWORD, HttpURLConnection.HTTP_OK, SimpleServlet.RESPONSE_BODY, true);
+    }
+
     static class KeycloakAndSubsystemSetup extends KeycloakSetup {
 
         @Override
         public void setup(ManagementClient managementClient, String containerId) throws Exception {
             super.setup(managementClient, containerId);
-            sendRealmCreationRequest(getRealmRepresentation(TEST_REALM, CLIENT_SECRET, CLIENT_HOST_NAME, CLIENT_PORT, APP_NAMES));
+            sendRealmCreationRequest(getRealmRepresentation(TEST_REALM, CLIENT_SECRET, CLIENT_HOST_NAME, CLIENT_PORT, SERVER_HOST_NAME, SERVER_PORT, APP_NAMES));
 
             ModelControllerClient client = managementClient.getControllerClient();
             ModelNode operation = createOpNode(PROVIDER_ADDRESS + KEYCLOAK_PROVIDER , ModelDescriptionConstants.ADD);
@@ -271,6 +281,20 @@ public class OidcWithSubsystemConfigTest extends OidcBaseTest {
             operation.get("enable-cors").set("true");
             Utils.applyUpdate(operation, client);
 
+            operation = createOpNode(SECURE_DEPLOYMENT_ADDRESS + WILDFLY_MANAGEMENT, ModelDescriptionConstants.ADD);
+            operation.get("client-id").set(WILDFLY_MANAGEMENT);
+            operation.get("provider").set(KEYCLOAK_PROVIDER);
+            operation.get("ssl-required").set("EXTERNAL");
+            operation.get("principal-attribute").set("preferred_username");
+            operation.get("bearer-only").set("true");
+            Utils.applyUpdate(operation, client);
+
+            operation = createOpNode(SECURE_SERVER_ADDRESS + WILDFLY_CONSOLE, ModelDescriptionConstants.ADD);
+            operation.get("client-id").set(WILDFLY_CONSOLE);
+            operation.get("provider").set(KEYCLOAK_PROVIDER);
+            operation.get("public-client").set(true);
+            Utils.applyUpdate(operation, client);
+
             ServerReload.executeReloadAndWaitForCompletion(managementClient);
         }
 
@@ -278,7 +302,9 @@ public class OidcWithSubsystemConfigTest extends OidcBaseTest {
         public void tearDown(ManagementClient managementClient, String containerId) throws Exception {
             ModelControllerClient client = managementClient.getControllerClient();
             for (String appName : APP_NAMES.keySet()) {
-                if (! appName.equals(CORS_CLIENT) && ! appName.equals(DIRECT_ACCCESS_GRANT_ENABLED_CLIENT)) {
+                if (appName.equals(WILDFLY_CONSOLE)) {
+                    removeSecureServer(client, appName);
+                } else if (! appName.equals(CORS_CLIENT) && ! appName.equals(DIRECT_ACCCESS_GRANT_ENABLED_CLIENT)) {
                     removeSecureDeployment(client, appName);
                 }
             }
@@ -295,7 +321,13 @@ public class OidcWithSubsystemConfigTest extends OidcBaseTest {
         }
 
         private static void removeSecureDeployment(ModelControllerClient client, String name) throws Exception {
-            ModelNode operation = createOpNode(SECURE_DEPLOYMENT_ADDRESS + name + ".war", ModelDescriptionConstants.REMOVE);
+            String suffix = ! name.equals(WILDFLY_MANAGEMENT) ? ".war" : "";
+            ModelNode operation = createOpNode(SECURE_DEPLOYMENT_ADDRESS + name + suffix, ModelDescriptionConstants.REMOVE);
+            Utils.applyUpdate(operation, client);
+        }
+
+        private static void removeSecureServer(ModelControllerClient client, String name) throws Exception {
+            ModelNode operation = createOpNode(SECURE_SERVER_ADDRESS + name, ModelDescriptionConstants.REMOVE);
             Utils.applyUpdate(operation, client);
         }
 

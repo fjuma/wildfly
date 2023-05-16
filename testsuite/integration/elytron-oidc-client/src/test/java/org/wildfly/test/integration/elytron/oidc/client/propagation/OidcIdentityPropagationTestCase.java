@@ -34,6 +34,8 @@ import static org.jboss.as.test.shared.integration.ejb.security.PermissionUtils.
 import static org.junit.Assume.assumeTrue;
 import static org.wildfly.test.integration.elytron.oidc.client.KeycloakConfiguration.getRealmRepresentation;
 import static org.wildfly.test.integration.elytron.oidc.client.OidcBaseTest.KEYCLOAK_CONTAINER;
+import static org.wildfly.test.integration.elytron.oidc.client.OidcBaseTest.SERVER_HOST_NAME;
+import static org.wildfly.test.integration.elytron.oidc.client.OidcBaseTest.SERVER_PORT;
 import static org.wildfly.test.integration.elytron.oidc.client.OidcBaseTest.loginToApp;
 
 import java.io.File;
@@ -816,7 +818,7 @@ public class OidcIdentityPropagationTestCase {
         @Override
         public void setup(ManagementClient managementClient, String containerId) throws Exception {
             super.setup(managementClient, containerId);
-            OidcBaseTest.sendRealmCreationRequest(getRealmRepresentation(TEST_REALM, CLIENT_SECRET, CLIENT_HOST_NAME, CLIENT_PORT, CLIENT_IDS));
+            OidcBaseTest.sendRealmCreationRequest(getRealmRepresentation(TEST_REALM, CLIENT_SECRET, CLIENT_HOST_NAME, CLIENT_PORT, SERVER_HOST_NAME, SERVER_PORT, CLIENT_IDS));
 
             ModelControllerClient client = managementClient.getControllerClient();
             ModelNode operation = createOpNode("system-property=" + OIDC_PROVIDER_URL, ModelDescriptionConstants.ADD);

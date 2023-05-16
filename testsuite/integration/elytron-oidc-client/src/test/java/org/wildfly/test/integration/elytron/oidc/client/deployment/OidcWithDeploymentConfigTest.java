@@ -410,7 +410,7 @@ public class OidcWithDeploymentConfigTest extends OidcBaseTest {
         @Override
         public void setup(ManagementClient managementClient, String containerId) throws Exception {
             super.setup(managementClient, containerId);
-            sendRealmCreationRequest(getRealmRepresentation(TEST_REALM, CLIENT_SECRET, CLIENT_HOST_NAME, CLIENT_PORT, APP_NAMES));
+            sendRealmCreationRequest(getRealmRepresentation(TEST_REALM, CLIENT_SECRET, CLIENT_HOST_NAME, CLIENT_PORT, SERVER_HOST_NAME, SERVER_PORT, APP_NAMES));
 
             ModelControllerClient client = managementClient.getControllerClient();
             ModelNode operation = createOpNode("system-property=" + OIDC_PROVIDER_URL, ModelDescriptionConstants.ADD);
