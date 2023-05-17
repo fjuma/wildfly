@@ -20,6 +20,7 @@ package org.wildfly.test.integration.elytron.oidc.client;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -174,7 +175,7 @@ public class KeycloakConfiguration {
         client.setEnabled(true);
         client.setDirectAccessGrantsEnabled(directAccessGrantEnabled);
         if (allowedOrigin != null) {
-            client.setWebOrigins(Arrays.asList("http://" + "localhost" + ":" + 9990 + "/" + clientApp, "http://" + "127.0.0.1" + ":" + 9990 + "/" + clientApp));
+            client.setWebOrigins(Collections.singletonList(allowedOrigin));
         }
         return client;
     }
