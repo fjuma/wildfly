@@ -24,6 +24,7 @@ package org.jboss.as.ejb3.security;
 
 import static org.jboss.as.ejb3.security.IdentityUtil.getCurrentSecurityDomain;
 
+import org.jboss.as.ejb3.logging.EjbLogger;
 import org.jboss.ejb.client.EJBClientInterceptor;
 import org.jboss.ejb.client.EJBClientInvocationContext;
 import org.wildfly.security.auth.server.SecurityDomain;
@@ -43,6 +44,7 @@ public final class IdentityEJBClientInterceptor implements EJBClientInterceptor 
     public void handleInvocation(EJBClientInvocationContext context) throws Exception {
         final SecurityDomain securityDomain = getCurrentSecurityDomain();
         if (securityDomain != null) {
+            EjbLogger.ROOT_LOGGER.trace("INTERMITTENT: IdentityEJBClientInterceptor " + securityDomain);
             SecurityIdentity identity = securityDomain.getCurrentSecurityIdentity();
             identity.runAsSupplierEx(() -> {
                 context.sendRequest();

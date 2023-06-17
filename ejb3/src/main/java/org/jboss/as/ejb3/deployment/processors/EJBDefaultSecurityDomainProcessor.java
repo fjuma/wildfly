@@ -191,6 +191,7 @@ public class EJBDefaultSecurityDomainProcessor implements DeploymentUnitProcesso
                     if (componentDescription instanceof EJBComponentDescription) {
                         EJBComponentDescription ejbComponentDescription = (EJBComponentDescription) componentDescription;
                         String definedSecurityDomain = ejbComponentDescription.getDefinedSecurityDomain();
+                        EjbLogger.ROOT_LOGGER.trace("INTERMITTENT: defined EJB security domain " + definedSecurityDomain + " for component " + ejbComponentDescription.getEJBClassName());
 
                         /*
                          * Only apply the Elytron domain if one of the following is true:
@@ -237,6 +238,7 @@ public class EJBDefaultSecurityDomainProcessor implements DeploymentUnitProcesso
 
                 for (final ComponentDescription componentDescription : componentDescriptions) {
                     if (componentDescription instanceof EJBComponentDescription) {
+                        EjbLogger.ROOT_LOGGER.trace("INTERMITTENT: virtual security domain handling for component " + ((EJBComponentDescription) componentDescription).getEJBClassName() + " with service name " + elytronDomainServiceName);
                         EJBComponentDescription ejbComponentDescription = (EJBComponentDescription) componentDescription;
                         ejbComponentDescription.setSecurityDomainServiceName(elytronDomainServiceName);
                         ejbComponentDescription.setOutflowSecurityDomainsConfigured(this);
