@@ -22,7 +22,6 @@
 
 package org.jboss.as.ejb3.security;
 
-import org.jboss.as.ejb3.component.EJBComponentDescription;
 import org.jboss.as.ejb3.logging.EjbLogger;
 import org.jboss.invocation.Interceptor;
 import org.jboss.invocation.InterceptorContext;

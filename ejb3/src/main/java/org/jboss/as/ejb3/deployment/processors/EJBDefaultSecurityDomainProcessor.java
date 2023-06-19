@@ -94,6 +94,7 @@ public class EJBDefaultSecurityDomainProcessor implements DeploymentUnitProcesso
         final SecurityMetaData securityMetaData = deploymentUnit.getAttachment(ATTACHMENT_KEY);
         // If we have a ServiceName for a security domain it should be used for all components.
         ServiceName elytronDomainServiceName = securityMetaData != null ? securityMetaData.getSecurityDomain() : null;
+        EjbLogger.ROOT_LOGGER.trace("INTERMITTENT: elytronDomainServiceName beginning " + elytronDomainServiceName);
 
         final ServiceName ejbSecurityDomainServiceName = deploymentUnit.getServiceName().append(EJBSecurityDomainService.SERVICE_NAME);
 
@@ -112,6 +113,7 @@ public class EJBDefaultSecurityDomainProcessor implements DeploymentUnitProcesso
         boolean isDefinedSecurityDomainVirtual = false;
 
         if (elytronDomainServiceName == null) {
+            EjbLogger.ROOT_LOGGER.trace("INTERMITTENT: beginning elytronDomainServiceName null");
             String selectedElytronDomainName = null;
             boolean legacyDomainDefined  = false;
 
@@ -124,25 +126,33 @@ public class EJBDefaultSecurityDomainProcessor implements DeploymentUnitProcesso
                     // Ensure the Jakarta Enterprise Beans components within a deployment are associated with at most one Elytron security domain
 
                     String definedSecurityDomain = ejbComponentDescription.getDefinedSecurityDomain();
+                    EjbLogger.ROOT_LOGGER.trace("INTERMITTENT: defined security domain " + definedSecurityDomain + " for component " + ((EJBComponentDescription) componentDescription).getEJBClassName());
                     defaultRequired = defaultRequired || definedSecurityDomain == null;
                     ApplicationSecurityDomainConfig definedDomainMapping = definedSecurityDomain != null ? this.apply(definedSecurityDomain) : null;
 
                     if (definedDomainMapping != null) {
+                        EjbLogger.ROOT_LOGGER.trace("INTERMITTENT: definedDomainMapping is not null for component " + ejbComponentDescription.getEJBClassName());
                         if (selectedElytronDomainName == null) {
+                            EjbLogger.ROOT_LOGGER.trace("INTERMITTENT: definedDomainMapping not null for component " + ejbComponentDescription.getEJBClassName());
                             selectedElytronDomainName = definedSecurityDomain;
                             selectedElytronDomainConfig = definedDomainMapping;
                         } else if (selectedElytronDomainName.equals(definedSecurityDomain) == false) {
+                            EjbLogger.ROOT_LOGGER.trace("INTERMITTENT: multiple security domains for component " + ejbComponentDescription.getEJBClassName());
                             throw EjbLogger.ROOT_LOGGER.multipleSecurityDomainsDetected();
                         }
                     } else if (definedSecurityDomain != null) {
+                        EjbLogger.ROOT_LOGGER.trace("INTERMITTENT: defined security domain not null for component " + ejbComponentDescription.getEJBClassName());
                         virtualDomainMetaData = getVirtualDomainMetaData(definedSecurityDomain, phaseContext);
                         if (virtualDomainMetaData != null) {
+                            EjbLogger.ROOT_LOGGER.trace("INTERMITTENT: virtualDomainMetaData not null for component " + ejbComponentDescription.getEJBClassName());
                             elytronDomainServiceName = VirtualDomainMarkerUtility.virtualDomainName(definedSecurityDomain);
                             isDefinedSecurityDomainVirtual = true;
                         }
                         if (elytronDomainServiceName != null) {
+                            EjbLogger.ROOT_LOGGER.trace("INTERMITTENT: setting selectedElytronDomainName to " + definedSecurityDomain + " for component " + ejbComponentDescription.getEJBClassName());
                             selectedElytronDomainName = definedSecurityDomain;
                         } else {
+                            EjbLogger.ROOT_LOGGER.trace("INTERMITTENT: setting legacyDomainDefined to true for component " + ejbComponentDescription.getEJBClassName());
                             legacyDomainDefined = true;
                         }
                     }
@@ -155,33 +165,40 @@ public class EJBDefaultSecurityDomainProcessor implements DeploymentUnitProcesso
              * security domain.
              */
             if (defaultRequired && selectedElytronDomainName == null) {
+                EjbLogger.ROOT_LOGGER.trace("INTERMITTENT: defaultRequired and selectedElytronDomainName is null ");
                 DeploymentUnit topLevelDeployment = toRoot(deploymentUnit);
                 final SecurityMetaData topLevelSecurityMetaData = topLevelDeployment.getAttachment(ATTACHMENT_KEY);
                 ServiceName topLevelElytronDomainServiceName = topLevelSecurityMetaData != null ? topLevelSecurityMetaData.getSecurityDomain() : null;
                 if (topLevelElytronDomainServiceName != null) {
                     // use the ServiceName from the top level deployment if the security domain has not been explicitly defined
+                    EjbLogger.ROOT_LOGGER.trace("INTERMITTENT: using top level deployment security domain " + topLevelElytronDomainServiceName);
                     elytronDomainServiceName = topLevelElytronDomainServiceName;
                     useDefaultElytronMapping = true;
                 } else if (defaultDomainMapping != null) {
+                    EjbLogger.ROOT_LOGGER.trace("INTERMITTENT: defaultDomainMapping not null");
                     selectedElytronDomainName = defaultSecurityDomain;
                     selectedElytronDomainConfig = defaultDomainMapping;
                     elytronDomainServiceName = defaultElytronDomainServiceName;
                     // Only apply a default domain to the whole deployment if no legacy domain was defined.
                     useDefaultElytronMapping = !legacyDomainDefined;
                 } else {
+                    EjbLogger.ROOT_LOGGER.trace("INTERMITTENT 1: setting useDefaultElytronMapping to false");
                     useDefaultElytronMapping = false;
                 }
             } else {
+                EjbLogger.ROOT_LOGGER.trace("INTERMITTENT 2: setting useDefaultElytronMapping to false");
                 useDefaultElytronMapping = false;
             }
 
             // If this Jakarta Enterprise Beans deployment is associated with an Elytron security domain, set up the security domain mapping
             if (selectedElytronDomainConfig != null) {
+                EjbLogger.ROOT_LOGGER.trace("INTERMITTENT 1: selectedElytronDomainConfig not null " + selectedElytronDomainConfig);
                 final EJBSecurityDomainService ejbSecurityDomainService = new EJBSecurityDomainService(deploymentUnit);
 
                 ServiceName applicationSecurityDomainServiceName = support.getCapabilityServiceName(
                         ApplicationSecurityDomainDefinition.APPLICATION_SECURITY_DOMAIN_CAPABILITY_NAME, selectedElytronDomainName);
                 elytronDomainServiceName = applicationSecurityDomainServiceName.append("security-domain");
+                EjbLogger.ROOT_LOGGER.trace("INTERMITTENT: elytronDomainServiceName is " + elytronDomainServiceName);
 
                 final ServiceBuilder<Void> builder = phaseContext.getServiceTarget().addService(ejbSecurityDomainServiceName, ejbSecurityDomainService)
                         .addDependency(applicationSecurityDomainServiceName, ApplicationSecurityDomain.class, ejbSecurityDomainService.getApplicationSecurityDomainInjector());
@@ -191,7 +208,7 @@ public class EJBDefaultSecurityDomainProcessor implements DeploymentUnitProcesso
                     if (componentDescription instanceof EJBComponentDescription) {
                         EJBComponentDescription ejbComponentDescription = (EJBComponentDescription) componentDescription;
                         String definedSecurityDomain = ejbComponentDescription.getDefinedSecurityDomain();
-                        EjbLogger.ROOT_LOGGER.trace("INTERMITTENT: defined EJB security domain " + definedSecurityDomain + " for component " + ejbComponentDescription.getEJBClassName());
+                        EjbLogger.ROOT_LOGGER.trace("INTERMITTENT: *defined EJB security domain " + definedSecurityDomain + " for component " + ejbComponentDescription.getEJBClassName());
 
                         /*
                          * Only apply the Elytron domain if one of the following is true:
@@ -207,6 +224,7 @@ public class EJBDefaultSecurityDomainProcessor implements DeploymentUnitProcesso
                         // The component may have had a legacy SecurityDomain defined.
                         if (useDefaultElytronMapping
                                 || selectedElytronDomainName.equals(definedSecurityDomain)) {
+                            EjbLogger.ROOT_LOGGER.trace("INTERMITTENT 1: setting security domain service name to " + elytronDomainServiceName + " for component " + ejbComponentDescription.getEJBClassName());
                             ejbComponentDescription.setOutflowSecurityDomainsConfigured(this);
                             ejbComponentDescription.setSecurityDomainServiceName(elytronDomainServiceName);
                             ejbComponentDescription.setRequiresJacc(selectedElytronDomainConfig.isEnableJacc());
@@ -215,6 +233,7 @@ public class EJBDefaultSecurityDomainProcessor implements DeploymentUnitProcesso
                                             configuration.getCreateDependencies().add((serviceBuilder, service) -> serviceBuilder.requires(ejbSecurityDomainServiceName))
                             );
                         } else if (definedSecurityDomain == null && defaultDomainMapping != null) {
+                            EjbLogger.ROOT_LOGGER.trace("INTERMITTENT 2: setting security domain service name to " + elytronDomainServiceName + " for component " + ejbComponentDescription.getEJBClassName());
                             ejbComponentDescription.setOutflowSecurityDomainsConfigured(this);
                             ejbComponentDescription.setSecurityDomainServiceName(defaultElytronDomainServiceName);
                             ejbComponentDescription.setRequiresJacc(defaultDomainMapping.isEnableJacc());
@@ -226,10 +245,12 @@ public class EJBDefaultSecurityDomainProcessor implements DeploymentUnitProcesso
                     }
                 }
             } else if (elytronDomainServiceName != null) {
+                EjbLogger.ROOT_LOGGER.trace("INTERMITTENT: elytronDomainServiceName is not null" + elytronDomainServiceName);
                 // virtual domain
                 final EJBSecurityDomainService ejbSecurityDomainService = new EJBSecurityDomainService(deploymentUnit);
 
                 if (isDefinedSecurityDomainVirtual && ! VirtualDomainUtil.isVirtualDomainCreated(deploymentUnit)) {
+                    EjbLogger.ROOT_LOGGER.trace("INTERMITTENT: creating virtual security domain ");
                     VirtualDomainUtil.createVirtualDomain(phaseContext.getServiceRegistry(), virtualDomainMetaData, elytronDomainServiceName, phaseContext.getServiceTarget());
                 }
                 final ServiceBuilder<Void> builder = phaseContext.getServiceTarget().addService(ejbSecurityDomainServiceName, ejbSecurityDomainService)
@@ -240,6 +261,7 @@ public class EJBDefaultSecurityDomainProcessor implements DeploymentUnitProcesso
                     if (componentDescription instanceof EJBComponentDescription) {
                         EjbLogger.ROOT_LOGGER.trace("INTERMITTENT: virtual security domain handling for component " + ((EJBComponentDescription) componentDescription).getEJBClassName() + " with service name " + elytronDomainServiceName);
                         EJBComponentDescription ejbComponentDescription = (EJBComponentDescription) componentDescription;
+                        EjbLogger.ROOT_LOGGER.trace("INTERMITTENT 3: setting security domain service name to " + elytronDomainServiceName + " for component " + ejbComponentDescription.getEJBClassName());
                         ejbComponentDescription.setSecurityDomainServiceName(elytronDomainServiceName);
                         ejbComponentDescription.setOutflowSecurityDomainsConfigured(this);
                         componentDescription.getConfigurators()
@@ -252,6 +274,7 @@ public class EJBDefaultSecurityDomainProcessor implements DeploymentUnitProcesso
         } else {
             // We will use the defined Elytron domain for all Jakarta Enterprise Beans and ignore individual configuration.
             // Bean level activation remains dependent on configuration of bean - i.e. does it actually need security?
+            EjbLogger.ROOT_LOGGER.trace("INTERMITTENT: elytronDomainServiceName was " + elytronDomainServiceName + " use defined Elytron domain and ignored individual configuration");
             final EJBSecurityDomainService ejbSecurityDomainService = new EJBSecurityDomainService(deploymentUnit);
 
             final ServiceBuilder<Void> builder = phaseContext.getServiceTarget().addService(ejbSecurityDomainServiceName, ejbSecurityDomainService)
@@ -262,6 +285,7 @@ public class EJBDefaultSecurityDomainProcessor implements DeploymentUnitProcesso
             for (ComponentDescription componentDescription : componentDescriptions) {
                 if (componentDescription instanceof EJBComponentDescription) {
                     EJBComponentDescription ejbComponentDescription = (EJBComponentDescription) componentDescription;
+                    EjbLogger.ROOT_LOGGER.trace("INTERMITTENT 4: setting security domain service name to " + elytronDomainServiceName + " for component " + ejbComponentDescription.getEJBClassName());
                     ejbComponentDescription.setSecurityDomainServiceName(elytronDomainServiceName);
                     ejbComponentDescription.setOutflowSecurityDomainsConfigured(this);
                     componentDescription.getConfigurators()

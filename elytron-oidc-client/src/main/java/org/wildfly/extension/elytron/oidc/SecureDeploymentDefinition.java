@@ -211,6 +211,7 @@ class SecureDeploymentDefinition extends SimpleResourceDefinition {
                 VirtualDomainMarkerUtility.virtualDomainRequired(context);
                 AdvancedSecurityMetaData advancedSecurityMetaData = new AdvancedSecurityMetaData();
                 advancedSecurityMetaData.setHttpServerAuthenticationMechanismFactory(virtualMechanismFactoryName(context));
+                ROOT_LOGGER.trace("INTERMITTENT setting advanced security meta data to in populate model " + virtualDomainName(context).getSimpleName());
                 advancedSecurityMetaData.setSecurityDomain(virtualDomainName(context));
                 context.attach(OPERATION_CONTEXT_ATTACHMENT_KEY, advancedSecurityMetaData);
             }

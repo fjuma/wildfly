@@ -36,6 +36,7 @@ import org.jboss.metadata.web.jboss.JBossWebMetaData;
 import org.jboss.msc.service.ServiceName;
 import org.wildfly.extension.undertow.Capabilities;
 import org.wildfly.extension.undertow.Constants;
+import org.wildfly.extension.undertow.logging.UndertowLogger;
 
 /**
  * A {@code DeploymentUnitProcessor} to resolve the security domain name for the deployment.
@@ -85,6 +86,7 @@ public class SecurityDomainResolvingProcessor implements DeploymentUnitProcessor
                                 Capabilities.CAPABILITY_APPLICATION_SECURITY_DOMAIN,
                                 securityDomain).append(Constants.SECURITY_DOMAIN);
                 if (securityMetaData != null) {
+                    UndertowLogger.ROOT_LOGGER.trace("INTERMITTENT setting security meta data security domain in SecurityDomainResolvingProcessor to " + securityDomainName.getSimpleName());
                     securityMetaData.setSecurityDomain(securityDomainName);
                 }
                 deploymentUnit.putAttachment(RESOLVED_SECURITY_DOMAIN, securityDomain);

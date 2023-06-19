@@ -29,6 +29,7 @@ import org.jboss.as.server.deployment.DeploymentUnitProcessor;
 import org.jboss.as.server.security.SecurityMetaData;
 import org.jboss.as.web.common.AdvancedSecurityMetaData;
 import org.jboss.msc.service.ServiceName;
+import org.wildfly.extension.elytron.oidc._private.ElytronOidcLogger;
 
 /**
  * A {@code DeploymentUnitProcessor} to set the {@code ServiceName} of any virtual HTTP server mechanism factory to be used
@@ -46,6 +47,7 @@ public class VirtualHttpServerMechanismFactoryNameProcessor implements Deploymen
             AdvancedSecurityMetaData advancedSecurityMetaData = new AdvancedSecurityMetaData();
             advancedSecurityMetaData.setHttpServerAuthenticationMechanismFactory(virtualMechanismFactoryName(deploymentUnit));
             ServiceName virtualDomainName = virtualDomainName(deploymentUnit);
+            ElytronOidcLogger.ROOT_LOGGER.trace("INTERMITTENT setting advanced security meta data to " + virtualDomainName.getSimpleName());
             advancedSecurityMetaData.setSecurityDomain(virtualDomainName); // virtual mechanism factory implies virtual security domain
             deploymentUnit.putAttachment(ATTACHMENT_KEY, advancedSecurityMetaData);
             setTopLevelDeploymentSecurityMetaData(deploymentUnit, virtualDomainName);
